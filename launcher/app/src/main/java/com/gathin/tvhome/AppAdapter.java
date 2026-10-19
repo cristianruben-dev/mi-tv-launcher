@@ -28,7 +28,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -55,15 +57,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final Drawable banner;
         final Drawable icon;
         final boolean system;
+        /** When the app was installed or updated; a newer value means its banner and name may differ. */
+        final long updated;
         int ambient;
 
-        Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean system) {
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean system, long updated) {
             this.label = label;
             this.component = component;
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
             this.system = system;
+            this.updated = updated;
         }
     }
 
@@ -84,6 +89,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final List<Entry> items = new ArrayList<>();
     /** Every launchable app, hidden ones included, alphabetical; for the settings lists. */
     private final List<Entry> all = new ArrayList<>();
+    /** Loaded app entries by component, kept between reloads. */
+    private final Map<String, Entry> cache = new HashMap<>();
 
     AppAdapter(Context ctx, TileListener listener, int columns) {
         this.ctx = ctx;
@@ -160,17 +167,29 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         List<Entry> fresh = new ArrayList<>();
+        Map<String, Entry> next = new HashMap<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName())) continue;
-            Drawable banner = ri.activityInfo.loadBanner(pm);
-            if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
-            Drawable icon = ri.loadIcon(pm);
-            String label = String.valueOf(ri.loadLabel(pm));
-            boolean system = (ri.activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon, system));
+            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+            String key = component.flattenToShortString();
+            long updated = lastUpdate(pm, pkg);
+            // Coming back to Home after every app: reuse banners, icons and names unless the app changed.
+            Entry e = cache.get(key);
+            if (e == null || e.updated != updated) {
+                Drawable banner = ri.activityInfo.loadBanner(pm);
+                if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
+                Drawable icon = ri.loadIcon(pm);
+                String label = String.valueOf(ri.loadLabel(pm));
+                boolean system = (ri.activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                e = new Entry(label, component, banner, icon, system, updated);
+            }
+            next.put(key, e);
+            fresh.add(e);
         }
+        cache.clear();
+        cache.putAll(next);   // uninstalled apps drop out
         Collections.sort(fresh, (a, b) -> a.label.compareToIgnoreCase(b.label));
         all.clear();
         all.addAll(fresh);
@@ -215,6 +234,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             return a.label.compareToIgnoreCase(b.label);
         });
         return out;
+    }
+
+    private static long lastUpdate(PackageManager pm, String pkg) {
+        try {
+            return pm.getPackageInfo(pkg, 0).lastUpdateTime;
+        } catch (PackageManager.NameNotFoundException e) {
+            return 0L;
+        }
     }
 
     Entry entryAt(int position) {
