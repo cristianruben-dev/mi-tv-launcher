@@ -46,6 +46,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Long press (or long OK) on a tile: show the app's menu. */
         void onTileLongPressed(int position, View card);
+
+        /** The dock's column count changed because apps were installed, removed, hidden or shown. */
+        void onDockColumnsChanged();
     }
 
     static final class Entry {
@@ -73,6 +76,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Tile width as a share of its cell; the rest is the gap between tiles. */
     private static final float TILE_FILL = 0.85f;
     private static final float TILE_ASPECT = 101f / 180f;
+    /** The dock never shrinks below this many slots: with fewer apps the rest stay empty. */
+    static final int MIN_DOCK_COLUMNS = 4;
 
     private final Context ctx;
     private final TileListener listener;
@@ -80,6 +85,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private List<String> favourites;
     private Set<String> hidden;
     private List<String> order;
+    /** Columns chosen in settings. */
+    private int chosenColumns;
+    /** Columns in use: the chosen ones, fewer when there are fewer apps (never under MIN_DOCK_COLUMNS). */
     private int columns;
     private int gridWidth;
     /** Shown tiles: the dock, then the grid. */
@@ -92,6 +100,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     AppAdapter(Context ctx, TileListener listener, int columns) {
         this.ctx = ctx;
         this.listener = listener;
+        this.chosenColumns = columns;
         this.columns = columns;
         this.density = ctx.getResources().getDisplayMetrics().density;
         refreshPrefs();
@@ -102,7 +111,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Re-reads dock, hidden apps and order from the settings; call reload() afterwards. */
     void refreshPrefs() {
-        favourites = Prefs.dockApps(ctx, columns);
+        favourites = Prefs.dockApps(ctx, chosenColumns);
         hidden = Prefs.hiddenApps(ctx);
         order = Prefs.appOrder(ctx);
     }
@@ -113,10 +122,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return columns;
     }
 
+    /** The columns chosen in settings; reload() then fits them to the apps there are. */
     void setColumns(int columns) {
-        if (this.columns == columns) return;
-        this.columns = columns;
-        notifyDataSetChanged();
+        chosenColumns = columns;
+    }
+
+    /** Fills the dock: as many columns as apps, between MIN_DOCK_COLUMNS and the chosen count. */
+    private void fitColumns() {
+        int fitted = Math.min(chosenColumns, Math.max(MIN_DOCK_COLUMNS, items.size()));
+        if (fitted == columns) return;
+        columns = fitted;
+        if (listener != null) listener.onDockColumnsChanged();
     }
 
     /** Dock slots: one per column. */
@@ -206,6 +222,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         });
         items.clear();
         items.addAll(shown);
+        fitColumns();
         notifyDataSetChanged();
     }
 

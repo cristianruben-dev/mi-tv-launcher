@@ -678,10 +678,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         adapter.setColumns(Prefs.columns(this));
         adapter.refreshPrefs();   // the dock holds one app per column
         adapter.reload();
+        onDockColumnsChanged();
+        refocusAfterChange();
+    }
+
+    @Override
+    public void onDockColumnsChanged() {
         dock.setDockSize(adapter.dockSize());
         layoutManager.setSpanCount(adapter.spanCount());
         grid.requestLayout();
-        refocusAfterChange();
     }
 
     /** After the tiles move, put focus and the glass back on the same app (or its old slot if it is gone). */

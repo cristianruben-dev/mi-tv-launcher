@@ -75,6 +75,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         boolean any = false;
+        float firstLeft = -1, cell = 0, cardW = 0;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
@@ -85,6 +86,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             float t = child.getTop() + card.getTop() + child.getTranslationY();
             float r = l + card.getWidth();
             float b = t + card.getHeight();
+            if (pos == 0) {
+                firstLeft = l;
+                cell = child.getWidth();
+                cardW = card.getWidth();
+            }
             if (!any) {
                 rect.set(l, t, r, b);
                 any = true;
@@ -93,6 +99,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
+        // Fewer apps than slots: the band still spans every slot, the last ones left empty.
+        if (firstLeft >= 0) rect.right = Math.max(rect.right, firstLeft + (dockSize - 1) * cell + cardW);
         float pad = 14 * density;
         rect.inset(-pad, -pad);
         float radius = 26 * density;
