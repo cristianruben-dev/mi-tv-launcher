@@ -48,7 +48,11 @@ if ! OUT=$(adb -s "$DEVICE" install -r "$APK" 2>&1); then
     # desinstalar un administrador activo. Si esto falla, desactívalo en Ajustes de la TV → Seguridad
     # → Administradores de dispositivos y vuelve a ejecutar el script.
     adb -s "$DEVICE" shell dpm remove-active-admin --user 0 "'$PKG/.SleepTimer\$Admin'" >/dev/null 2>&1 || true
-    adb -s "$DEVICE" uninstall "$PKG" >/dev/null
+    if ! adb -s "$DEVICE" uninstall "$PKG" >/dev/null; then
+      echo "No se pudo desinstalar: el launcher es administrador del dispositivo (apagado automático)."
+      echo "Desactívalo en Ajustes de la TV → Seguridad → Administradores de dispositivos y vuelve a ejecutar."
+      exit 1
+    fi
     adb -s "$DEVICE" install "$APK"
   else
     echo "$OUT"
