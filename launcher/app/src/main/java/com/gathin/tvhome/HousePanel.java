@@ -693,6 +693,11 @@ final class HousePanel extends FrameLayout {
 
     // ---- focus -----------------------------------------------------------------------------------
 
+    /** Focuses the model's card (back from House Control, which it opens). */
+    void focusCard() {
+        cover.requestFocus();
+    }
+
     /** Up from the dock (or down from the top bar): the bottom-row scene or the model nearest to {@code x}. */
     void focusNearest(float x) {
         View best = cover;

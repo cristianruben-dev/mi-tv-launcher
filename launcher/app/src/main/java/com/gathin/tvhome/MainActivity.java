@@ -103,6 +103,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private static int lastFocused = 0;
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
+    /** House Control was opened from its card on the home screen: Back from it lands on the card again. */
+    private static boolean returnToHouse;
     private float density;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -265,6 +267,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         // Return to the app we left from, or the same slot if that app is gone. Always refocus: after
         // reload() the view that holds focus may no longer show the app it had.
         grid.post(() -> {
+            if (returnToHouse && houseShown()) {
+                house.focusCard();
+                return;
+            }
             int pos = adapter.positionOf(returnKey);
             focusTile(pos >= 0 ? pos : returnSlot);
         });
@@ -301,6 +307,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        returnToHouse = false;
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
@@ -571,6 +578,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
             return;
         }
+        returnToHouse = true;
         open(i);
     }
 
