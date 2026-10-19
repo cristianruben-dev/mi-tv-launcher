@@ -31,8 +31,8 @@
     <string name="language_system">Same as the TV</string>
     <string name="language_en">English</string>
     <string name="language_es">Español</string>
-    <string name="dock_hint">Pick up to 4 apps, in the order you want them. %1$d of 4 chosen.</string>
-    <string name="dock_full">The dock holds 4 apps. Remove one first.</string>
+    <string name="dock_hint">Pick up to %2$d apps, in the order you want them. %1$d of %2$d chosen.</string>
+    <string name="dock_full">The dock holds %1$d apps, one per column. Remove one first.</string>
     <string name="dock_reset">Restore default apps</string>
     <string name="wallpaper_hint">Background of the home screen.</string>
     <string name="wallpaper_none">None (launcher colours)</string>
@@ -53,7 +53,7 @@
     <string name="apps_reset_order">Back to alphabetical order</string>
     <string name="app_hidden">%1$s is hidden. Show it again in Settings → Apps.</string>
     <string name="dock_replaced">%1$s took the place of %2$s in the dock</string>
-    <string name="personalize_hint">Size of the grid and how dark the wallpaper is.</string>
+    <string name="personalize_hint">Size of the grid (the dock uses the same columns) and how dark the wallpaper is.</string>
     <string name="columns_header">Columns</string>
     <string name="columns_option">%1$d per row</string>
     <string name="dim_header">Darken wallpaper</string>

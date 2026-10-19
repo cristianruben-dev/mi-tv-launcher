@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * App tiles. The first {@link #DOCK} positions are the pinned dock (favourites, fixed order), the
- * rest follow the order picked in settings, then alphabetical. The dock always has four slots; the
- * grid below has as many columns as chosen in settings, and its tiles grow or shrink to fit.
+ * App tiles. The first row is the pinned dock (favourites, fixed order), the rest follow the order
+ * picked in settings, then alphabetical. Dock and grid share the column count chosen in settings, so the
+ * dock holds one app per column and every tile is the same size, grown or shrunk to fill the row.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
@@ -68,7 +68,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
-    static final int DOCK = Prefs.DOCK_MAX;
     /** Tile width as a share of its cell; the rest is the gap between tiles. */
     private static final float TILE_FILL = 0.85f;
     private static final float TILE_ASPECT = 101f / 180f;
@@ -99,7 +98,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Re-reads dock, hidden apps and order from the settings; call reload() afterwards. */
     void refreshPrefs() {
-        favourites = Prefs.dockApps(ctx);
+        favourites = Prefs.dockApps(ctx, columns);
         hidden = Prefs.hiddenApps(ctx);
         order = Prefs.appOrder(ctx);
     }
@@ -142,7 +141,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     int cardWidth(boolean dock) {
         int width = gridWidth > 0 ? gridWidth : (int) (848 * density);
-        return (int) (width / (float) (dock ? DOCK : columns) * TILE_FILL);
+        return (int) (width / (float) columns * TILE_FILL);
     }
 
     int cardHeight(boolean dock) {
@@ -232,7 +231,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
-        boolean dock = position < DOCK;
+        boolean dock = position < dockSize();
         sizeTile(h, dock);
         h.name.setText(e.label);
         h.name.setVisibility(dock ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
@@ -324,10 +323,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Entry e = items.get(position);
         if (e.ambient == 0) e.ambient = vividColor(e.banner != null ? e.banner : e.icon);
         return e.ambient;
-    }
-
-    private static int gcd(int a, int b) {
-        return b == 0 ? a : gcd(b, a % b);
     }
 
     private static int vividColor(Drawable live) {

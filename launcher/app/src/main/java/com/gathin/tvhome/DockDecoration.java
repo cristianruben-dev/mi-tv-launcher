@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
  */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
-    private final int dockSize;
+    private int dockSize;
     private final float density;
     private final ViewGroup root;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -43,6 +43,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(0x1FFFFFFF);
+    }
+
+    /** The dock follows the grid's column count. */
+    void setDockSize(int dockSize) {
+        this.dockSize = dockSize;
     }
 
     void setBlur(boolean blur) {

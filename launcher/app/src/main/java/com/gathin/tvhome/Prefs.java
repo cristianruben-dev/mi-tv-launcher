@@ -16,9 +16,8 @@ import java.util.Set;
 final class Prefs {
 
     static final String LANG_SYSTEM = "";
-    /** Dock slots; the dock always shows this many apps, whatever the grid's column count. */
-    static final int DOCK_MAX = 4;
-    static final int[] COLUMN_CHOICES = {3, 4, 5};
+    /** Grid columns offered in settings; the dock has one slot per column. */
+    static final int[] COLUMN_CHOICES = {3, 4, 5, 6};
     static final int[] DIM_CHOICES = {0, 20, 40, 60};
 
     private static final String FILE = "tvhome";
@@ -72,10 +71,18 @@ final class Prefs {
     /** Dock packages in order: the user's choice, or config.xml's dock_apps until they pick some. */
     static List<String> dockApps(Context ctx) {
         String saved = sp(ctx).getString(KEY_DOCK_APPS, null);
-        List<String> out = saved == null
+        return saved == null
                 ? new ArrayList<>(Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps)))
                 : split(saved);
-        return out.size() > DOCK_MAX ? new ArrayList<>(out.subList(0, DOCK_MAX)) : out;
+    }
+
+    /**
+     * The dock apps that fit {@code slots} slots. The saved list is kept whole, so going from 6 columns to
+     * 4 and back brings the last two apps back.
+     */
+    static List<String> dockApps(Context ctx, int slots) {
+        List<String> all = dockApps(ctx);
+        return all.size() > slots ? new ArrayList<>(all.subList(0, slots)) : all;
     }
 
     static void setDockApps(Context ctx, List<String> pkgs) {

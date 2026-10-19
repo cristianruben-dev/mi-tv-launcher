@@ -233,4 +233,13 @@
         android:scaleType="fitXY"
         android:visibility="gone"
         android:importantForAccessibility="no" />
+
+    <!-- Sharp copy of the pressed tile over the blur, placed and scaled in code. -->
+    <ImageView
+        android:id="@+id/backdropTile"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:scaleType="fitXY"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
 </FrameLayout>

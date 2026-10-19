@@ -1,18 +1,21 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.app.Dialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 /**
- * The menu for a long press on a tile: open, dock, hide, arrange, app info, uninstall. A glass panel like
- * the Inputs dropdown over the blurred home screen.
+ * The menu for a long press on a tile: open, dock, arrange, hide, app info, uninstall. A compact glass
+ * dropdown like the Inputs menu, hanging below the tile (or above it when there is no room), over the
+ * blurred home screen with the pressed tile kept sharp.
  */
 final class AppMenu {
 
@@ -30,7 +33,8 @@ final class AppMenu {
 
         void uninstall(AppAdapter.Entry e);
 
-        void showBackdrop();
+        /** Blurs the home screen behind the menu, keeping {@code sharp} (the pressed tile) in focus. */
+        void showBackdrop(View sharp);
 
         void hideBackdrop();
     }
@@ -39,27 +43,21 @@ final class AppMenu {
     private final Host host;
     private final AppAdapter.Entry entry;
     private final boolean inDock;
-    private Dialog dialog;
+    private final View card;
+    private PopupWindow popup;
 
-    AppMenu(Activity act, Host host, AppAdapter.Entry entry, boolean inDock) {
+    AppMenu(Activity act, Host host, AppAdapter.Entry entry, boolean inDock, View card) {
         this.act = act;
         this.host = host;
         this.entry = entry;
         this.inDock = inDock;
+        this.card = card;
     }
 
     void show() {
         float density = act.getResources().getDisplayMetrics().density;
-        dialog = new Dialog(act, R.style.SettingsDialog);
-        View panel = act.getLayoutInflater().inflate(R.layout.dialog_app_menu, null, false);
-        dialog.setContentView(panel);
-        Window w = dialog.getWindow();
-        if (w != null) w.setLayout((int) (360 * density), ViewGroup.LayoutParams.WRAP_CONTENT);
-
-        ImageView art = panel.findViewById(R.id.art);
-        art.setClipToOutline(true);   // round corners from the tile_bg background (the XML attribute needs API 31)
-        if (entry.banner != null) art.setImageDrawable(entry.banner);
-        else art.setImageDrawable(entry.icon);
+        View root = act.findViewById(R.id.root);
+        View panel = act.getLayoutInflater().inflate(R.layout.popup_app_menu, (ViewGroup) root, false);
         ((TextView) panel.findViewById(R.id.appName)).setText(entry.label);
 
         LinearLayout rows = panel.findViewById(R.id.rows);
@@ -70,30 +68,57 @@ final class AppMenu {
         addRow(rows, R.drawable.ic_hide, R.string.menu_hide, () -> host.hideApp(entry));
         addRow(rows, R.drawable.ic_info, R.string.menu_info, () -> host.appInfo(entry));
         if (!entry.system) addRow(rows, R.drawable.ic_delete, R.string.menu_uninstall, () -> host.uninstall(entry));
-
         View first = rows.getChildAt(0), last = rows.getChildAt(rows.getChildCount() - 1);
         first.setNextFocusUpId(first.getId());
         last.setNextFocusDownId(last.getId());
 
-        host.showBackdrop();
-        dialog.setOnDismissListener(d -> host.hideBackdrop());
-        dialog.show();
+        int width = (int) (280 * density);
+        panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.UNSPECIFIED);
+        int height = panel.getMeasuredHeight();
 
+        popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+        popup.setOnDismissListener(host::hideBackdrop);
+
+        // Below the tile as it looks now (scaled up by focus), or above it when it would run off screen.
+        int[] at = new int[2];
+        card.getLocationInWindow(at);
+        float scale = card.getScaleX();
+        int tileW = (int) (card.getWidth() * scale), tileH = (int) (card.getHeight() * scale);
+        int gap = (int) (14 * density), margin = (int) (24 * density);
+        int screenW = root.getWidth(), screenH = root.getHeight();
+        int x = at[0] + tileW / 2 - width / 2;
+        x = Math.max(margin, Math.min(x, screenW - width - margin));
+        int y = at[1] + tileH + gap;
+        boolean below = y + height <= screenH - margin;
+        if (!below) y = Math.max(margin, at[1] - gap - height);
+
+        host.showBackdrop(card);
+        popup.showAtLocation(root, Gravity.NO_GRAVITY, x, y);
+
+        // Drop in like the Inputs menu: fade and unfold from the edge next to the tile.
         panel.setAlpha(0f);
-        panel.setScaleX(0.92f);
+        panel.setPivotY(below ? 0f : height);
         panel.setScaleY(0.92f);
-        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(Motion.ms(220))
+        panel.setTranslationY((below ? -8 : 8) * density);
+        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(Motion.ms(220))
                 .setInterpolator(new DecelerateInterpolator(1.6f)).start();
         first.requestFocus();
     }
 
     private void addRow(LinearLayout rows, int icon, int title, Runnable action) {
-        View row = act.getLayoutInflater().inflate(R.layout.item_setting, rows, false);
+        View row = act.getLayoutInflater().inflate(R.layout.item_input, rows, false);
         row.setId(View.generateViewId());
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(icon);
         ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
         row.setOnClickListener(v -> {
-            dialog.dismiss();
+            popup.dismiss();
             action.run();
         });
         rows.addView(row);

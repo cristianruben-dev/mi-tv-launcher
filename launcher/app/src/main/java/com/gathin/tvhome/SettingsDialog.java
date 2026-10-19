@@ -259,13 +259,14 @@ final class SettingsDialog {
 
     private void buildDock() {
         List<AppAdapter.Entry> apps = host.allApps();
+        final int slots = Prefs.columns(act);
         Set<String> installed = new HashSet<>();
         for (AppAdapter.Entry e : apps) installed.add(e.pkg);
         final Map<String, TextView> badges = new HashMap<>();
 
         Runnable refresh = () -> {
-            List<String> dock = installedDock(installed);
-            sectionHint.setText(act.getString(R.string.dock_hint, dock.size()));
+            List<String> dock = installedDock(installed, slots);
+            sectionHint.setText(act.getString(R.string.dock_hint, dock.size(), slots));
             for (Map.Entry<String, TextView> b : badges.entrySet()) {
                 int idx = dock.indexOf(b.getKey());
                 b.getValue().setVisibility(idx >= 0 ? View.VISIBLE : View.GONE);
@@ -277,11 +278,11 @@ final class SettingsDialog {
             View row = appRow(e);
             badges.put(e.pkg, row.findViewById(R.id.badge));
             row.setOnClickListener(v -> {
-                List<String> dock = installedDock(installed);
+                List<String> dock = installedDock(installed, slots);
                 if (dock.contains(e.pkg)) {
                     dock.remove(e.pkg);
-                } else if (dock.size() >= Prefs.DOCK_MAX) {
-                    Toast.makeText(act, R.string.dock_full, Toast.LENGTH_SHORT).show();
+                } else if (dock.size() >= slots) {
+                    Toast.makeText(act, act.getString(R.string.dock_full, slots), Toast.LENGTH_SHORT).show();
                     return;
                 } else {
                     dock.add(e.pkg);
@@ -301,10 +302,12 @@ final class SettingsDialog {
         refresh.run();
     }
 
-    /** The dock as saved, minus apps that are no longer installed or shown. */
-    private List<String> installedDock(Set<String> installed) {
+    /** The dock as saved, minus apps that are no longer installed or shown, up to one per column. */
+    private List<String> installedDock(Set<String> installed, int slots) {
         List<String> dock = new ArrayList<>();
-        for (String p : Prefs.dockApps(act)) if (installed.contains(p) && !dock.contains(p)) dock.add(p);
+        for (String p : Prefs.dockApps(act)) {
+            if (installed.contains(p) && !dock.contains(p) && dock.size() < slots) dock.add(p);
+        }
         return dock;
     }
 
@@ -318,14 +321,14 @@ final class SettingsDialog {
         arrange.setOnClickListener(v -> switchAppsMode(true));
         addHeader(act.getString(arranging ? R.string.apps_header_order : R.string.apps_header_visibility));
 
-        // Shown apps come first in grid order, so the first DOCK of them are the dock, which is managed
+        // Shown apps come first in grid order, so the first row of them is the dock, which is managed
         // in "Dock apps"; hidden apps follow.
         List<AppAdapter.Entry> apps = host.appsInGridOrder();
         Set<String> hidden = Prefs.hiddenApps(act);
         int seen = 0;
         for (AppAdapter.Entry e : apps) {
             boolean isHidden = hidden.contains(e.pkg);
-            if (!isHidden && seen++ < AppAdapter.DOCK) continue;   // dock apps
+            if (!isHidden && seen++ < Prefs.columns(act)) continue;   // dock apps
             if (arranging && isHidden) continue;                 // hidden apps have no place in the grid
             View row = appRow(e);
             row.setTag(e.pkg);

@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.view.View;
 
 /**
@@ -22,6 +24,22 @@ final class Blur {
             c.scale(w / (float) view.getWidth(), h / (float) view.getHeight());
             view.draw(c);
             blurInPlace(bmp, 3, 3);
+            return bmp;
+        } catch (RuntimeException | OutOfMemoryError e) {
+            return null;
+        }
+    }
+
+    /** A full-resolution copy of what a view shows, clipped to rounded corners like a tile. */
+    static Bitmap copyOf(View view, float radius) {
+        if (view.getWidth() <= 0 || view.getHeight() <= 0) return null;
+        try {
+            Bitmap bmp = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(bmp);
+            Path clip = new Path();
+            clip.addRoundRect(new RectF(0, 0, view.getWidth(), view.getHeight()), radius, radius, Path.Direction.CW);
+            c.clipPath(clip);
+            view.draw(c);
             return bmp;
         } catch (RuntimeException | OutOfMemoryError e) {
             return null;

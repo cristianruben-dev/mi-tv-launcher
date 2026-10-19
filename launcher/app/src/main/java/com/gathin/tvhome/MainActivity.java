@@ -78,6 +78,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private View wallpaperDim;
     private View topScrim;
     private ImageView backdrop;
+    private ImageView backdropTile;
     private FadeFrame gridFrame;
     private DockDecoration dock;
     /** Asset name of the wallpaper on screen (or being loaded); "" for none, null before the first load. */
@@ -145,6 +146,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         wallpaperDim = findViewById(R.id.wallpaperDim);
         topScrim = findViewById(R.id.topScrim);
         backdrop = findViewById(R.id.backdrop);
+        backdropTile = findViewById(R.id.backdropTile);
         gridFrame = findViewById(R.id.gridFrame);
 
         grid = findViewById(R.id.grid);
@@ -159,7 +161,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         grid.setLayoutManager(layoutManager);
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        dock = new DockDecoration(AppAdapter.DOCK, density, root);
+        dock = new DockDecoration(adapter.dockSize(), density, root);
         grid.addItemDecoration(dock);
         applyBlur();
         applyWallpaper();
@@ -319,7 +321,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             springY.animateToFinalPosition(y);
         }
         View item = (View) card.getParent();
-        if (position < AppAdapter.DOCK) {
+        if (position < adapter.dockSize()) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
@@ -415,29 +417,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
-        int count = adapter.getItemCount();
-        int dockSize = AppAdapter.DOCK, cols = adapter.columns();
+        // The dock is the first row of the grid, with the same columns, so rows line up straight.
+        int count = adapter.getItemCount(), cols = adapter.columns();
         int target;
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < dockSize) return false;          // dock row: let focus move to the top bar
-            int index = position - dockSize;
-            if (index < cols) {
-                // First grid row: up to the dock slot above, by position across the row.
-                target = cols == 1 ? 0 : Math.round(index * (dockSize - 1) / (float) (cols - 1));
-                target = Math.min(target, Math.min(dockSize, count) - 1);
-            } else {
-                target = position - cols;
-            }
+            if (position < cols) return false;          // dock row: let focus move to the top bar
+            target = position - cols;
         } else {
-            if (position < dockSize) {
-                if (count <= dockSize) return true;
-                int col = Math.round(position * (cols - 1) / (float) (dockSize - 1));
-                target = Math.min(dockSize + col, count - 1);
-            } else {
-                int lastRowStart = dockSize + ((count - 1 - dockSize) / cols) * cols;
-                if (position >= lastRowStart) return true;     // already on the last row: stay put
-                target = Math.min(position + cols, count - 1);
-            }
+            int lastRowStart = ((count - 1) / cols) * cols;
+            if (position >= lastRowStart) return true;     // already on the last row: stay put
+            target = Math.min(position + cols, count - 1);
         }
         focusTile(target);
         return true;
@@ -474,7 +463,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     public void onTileLongPressed(int position, View card) {
         AppAdapter.Entry e = adapter.entryAt(position);
         if (e == null) return;
-        new AppMenu(this, this, e, position < AppAdapter.DOCK).show();
+        new AppMenu(this, this, e, position < adapter.dockSize(), card).show();
     }
 
     @Override
@@ -486,17 +475,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     public void toggleDock(AppAdapter.Entry e, boolean inDock) {
         // Start from the dock as shown (including apps that only fill empty slots), then change it.
         List<String> dockApps = new ArrayList<>();
-        for (int i = 0; i < Math.min(AppAdapter.DOCK, adapter.getItemCount()); i++) {
+        int slots = adapter.dockSize();
+        for (int i = 0; i < Math.min(slots, adapter.getItemCount()); i++) {
             AppAdapter.Entry d = adapter.entryAt(i);
             if (d != null) dockApps.add(d.pkg);
         }
         if (inDock) {
             dockApps.remove(e.pkg);
         } else {
-            if (dockApps.size() >= AppAdapter.DOCK) {
+            if (dockApps.size() >= slots) {
                 // Full: the new app takes the last slot.
-                AppAdapter.Entry out = adapter.entryAt(AppAdapter.DOCK - 1);
-                dockApps.remove(AppAdapter.DOCK - 1);
+                AppAdapter.Entry out = adapter.entryAt(slots - 1);
+                dockApps.remove(slots - 1);
                 if (out != null) Toast.makeText(this, getString(R.string.dock_replaced, e.label, out.label),
                         Toast.LENGTH_SHORT).show();
             }
@@ -535,9 +525,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     // ---- menu backdrop ---------------------------------------------------------------------------
 
-    /** Blurs the home screen behind a menu or the settings, when blur is on. */
+    /**
+     * Blurs the home screen behind the long press menu, when blur is on, and lays a sharp copy of the
+     * pressed tile over it at the same place and scale, so the menu reads as belonging to that tile.
+     */
     @Override
-    public void showBackdrop() {
+    public void showBackdrop(View sharp) {
         if (!Prefs.blur(this)) return;
         Bitmap shot = Blur.snapshot(root, BACKDROP_DOWNSCALE);
         if (shot == null) return;
@@ -545,10 +538,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         backdrop.setVisibility(View.VISIBLE);
         backdrop.setAlpha(0f);
         backdrop.animate().alpha(1f).setDuration(Motion.ms(220)).withEndAction(null).start();
+
+        Bitmap tile = sharp == null ? null : Blur.copyOf(sharp, 16f * density);
+        if (tile == null) return;
+        Rect r = new Rect(0, 0, sharp.getWidth(), sharp.getHeight());
+        root.offsetDescendantRectToMyCoords(sharp, r);   // layout position; the scale is applied below
+        backdropTile.setLayoutParams(new FrameLayout.LayoutParams(r.width(), r.height()));
+        backdropTile.setTranslationX(r.left);
+        backdropTile.setTranslationY(r.top);
+        backdropTile.setScaleX(sharp.getScaleX());
+        backdropTile.setScaleY(sharp.getScaleY());
+        backdropTile.setImageBitmap(tile);
+        backdropTile.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void hideBackdrop() {
+        backdropTile.setVisibility(View.GONE);
+        backdropTile.setImageDrawable(null);
         if (backdrop.getVisibility() != View.VISIBLE) return;
         backdrop.animate().alpha(0f).setDuration(Motion.ms(180)).withEndAction(() -> {
             backdrop.setVisibility(View.GONE);
@@ -662,6 +669,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     @Override
     public void onColumnsChanged() {
         adapter.setColumns(Prefs.columns(this));
+        adapter.refreshPrefs();   // the dock holds one app per column
+        adapter.reload();
+        dock.setDockSize(adapter.dockSize());
         layoutManager.setSpanCount(adapter.spanCount());
         grid.requestLayout();
         refocusAfterChange();
