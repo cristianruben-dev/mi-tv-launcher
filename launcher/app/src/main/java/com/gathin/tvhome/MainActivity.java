@@ -404,9 +404,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
-    public boolean onTileVerticalKey(int position, int keyCode) {
+    public boolean onTileKey(int position, int keyCode) {
         // The dock is the first row of the grid, with the same columns, so rows line up straight.
         int count = adapter.getItemCount(), cols = adapter.columns();
+        // Left and right stay in the row: at its ends Android's focus finder would jump to a scene or the top bar.
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return position % cols == 0;
+        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return position % cols == cols - 1 || position == count - 1;
         int target;
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             if (position < cols && houseShown()) {      // dock row: up to House Control's scenes and home

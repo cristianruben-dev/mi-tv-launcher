@@ -41,8 +41,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     interface TileListener {
         void onTileFocused(int position, View card);
 
-        /** Called for D-pad Up/Down on a tile. Return true when handled. */
-        boolean onTileVerticalKey(int position, int keyCode);
+        /** Called for the D-pad's arrows on a tile. Return true when handled. */
+        boolean onTileKey(int position, int keyCode);
 
         /** Long press (or long OK) on a tile: show the app's menu. */
         void onTileLongPressed(int position, View card);
@@ -381,9 +381,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
+                        && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
                 int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileKey(pos, keyCode);
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
