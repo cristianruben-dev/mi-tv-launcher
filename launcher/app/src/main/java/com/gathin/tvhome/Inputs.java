@@ -9,6 +9,7 @@ import android.media.tv.TvInputManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /** The TV's own inputs (HDMI, AV) and Live TV, for "Input at power on" and opening them. */
 final class Inputs {
@@ -41,7 +42,7 @@ final class Inputs {
                 if (!info.isPassthroughInput()) continue;
                 CharSequence l = info.loadLabel(ctx);
                 String label = l == null ? info.getId() : l.toString();
-                if (info.getType() == TvInputInfo.TYPE_HDMI && !label.toUpperCase().contains("HDMI")) label = "HDMI " + label;
+                if (info.getType() == TvInputInfo.TYPE_HDMI && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
                 out.add(new Item(info.getId(), label));
             }
         }

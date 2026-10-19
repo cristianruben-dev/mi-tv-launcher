@@ -14,7 +14,8 @@ android {
 
     defaultConfig {
         applicationId 'com.gathin.tvhome'
-        minSdk 26
+        // Android 9: the variable Outfit font weights (fontVariationSettings) need API 28.
+        minSdk 28
         targetSdk 29
         versionCode 3
         versionName '3.0'
@@ -45,6 +46,8 @@ android {
         // The launcher is sideloaded over ADB, never published to Google Play, so Play's minimum targetSdk
         // does not apply; without this, lintVitalRelease fails assembleRelease.
         disable 'ExpiredTargetSdkVersion'
+        // A home screen is opened by the HOME intent, not from an app list.
+        disable 'MissingLeanbackLauncher'
     }
 
     compileOptions {

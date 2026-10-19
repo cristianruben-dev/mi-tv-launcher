@@ -4,9 +4,7 @@
     <string name="inputs">Inputs</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Settings</string>
-    <string name="choose_input">Inputs</string>
     <string name="connected">Connected</string>
-    <string name="standby">Standby</string>
     <string name="not_connected">No device</string>
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">No inputs found</string>
@@ -24,23 +22,18 @@
     <!-- Settings dialog -->
     <string name="settings_title">Settings</string>
     <string name="section_language">Language</string>
-    <string name="section_dock">Dock apps</string>
     <string name="section_wallpaper">Wallpaper</string>
     <string name="section_tv_settings">TV settings</string>
-    <string name="language_hint">Language of the home screen.</string>
     <string name="language_system">Same as the TV</string>
     <string name="language_en">English</string>
     <string name="language_es">Español</string>
-    <string name="dock_hint">Pick up to %2$d apps, in the order you want them. %1$d of %2$d chosen.</string>
     <string name="dock_full">The dock holds %1$d apps, one per column. Remove one first.</string>
     <string name="dock_reset">Restore default apps</string>
     <string name="wallpaper_hint">Background of the home screen.</string>
-    <string name="wallpaper_none">None (launcher colours)</string>
     <string name="wallpaper_empty">No wallpapers bundled yet. Add images to assets/wallpapers and rebuild.</string>
     <string name="tv_settings_hint">Picture, sound, network and the rest of the TV\'s own settings.</string>
     <string name="open_tv_settings">Open TV settings</string>
     <string name="section_apps">Apps</string>
-    <string name="section_personalize">Personalisation</string>
     <string name="section_screensaver">Screensaver</string>
     <string name="section_performance">Performance</string>
     <string name="apps_mode_visibility">Show or hide apps</string>
@@ -53,7 +46,6 @@
     <string name="apps_reset_order">Back to alphabetical order</string>
     <string name="app_hidden">%1$s is hidden. Show it again in Settings → Apps.</string>
     <string name="dock_replaced">%1$s took the place of %2$s in the dock</string>
-    <string name="personalize_hint">Size of the grid (the dock uses the same columns) and how dark the wallpaper is.</string>
     <string name="columns_header">Columns</string>
     <string name="columns_option">%1$d per row</string>
     <string name="dim_header">Darken wallpaper</string>
