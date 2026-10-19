@@ -201,12 +201,18 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="10dp">
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="-24dp"
+            android:layout_marginEnd="-24dp">
 
+            <!-- The wrapper reaches 24dp into the screen margins and the grid pads them back, so tiles stay
+                 where they were but the dock band and focused tiles are no longer clipped at the sides. -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
                 android:paddingTop="10dp"
                 android:paddingBottom="40dp"
                 android:clipToPadding="false"

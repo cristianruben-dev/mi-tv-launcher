@@ -375,8 +375,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         showAmbient(color);
     }
 
-    /** Fades the ambient glow in, or over to a new colour, for whichever tile has focus. */
+    /**
+     * Fades the ambient glow in, or over to a new colour, for whichever tile has focus. Not over a
+     * wallpaper: there the picture is the background, and a coloured haze on it looks muddy.
+     */
     private void showAmbient(int color) {
+        if (hasWallpaper()) {
+            hideAmbient();
+            return;
+        }
         if (!ambientShown) {
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(Motion.ms(600)).withEndAction(null).start();
@@ -392,6 +399,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
                 ambient.animate().alpha(1f).setDuration(500).withEndAction(null).start();
             }).start();
         }
+    }
+
+    private void hideAmbient() {
+        if (!ambientShown) return;
+        ambientShown = false;
+        ambient.animate().alpha(0f).setDuration(Motion.ms(300)).withEndAction(null).start();
+    }
+
+    private boolean hasWallpaper() {
+        return loadedWallpaper != null && !loadedWallpaper.isEmpty();
     }
 
     private void setAmbient(int color) {
