@@ -64,8 +64,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         ControlCenter.Host {
 
     private static final long MINUTE_MS = 60_000L;
-    /** The menu backdrop is blurred from a copy this many times smaller than the screen. */
-    private static final int BACKDROP_DOWNSCALE = 6;
     private String liveTvPkg;
 
     private AppAdapter adapter;
@@ -510,7 +508,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     @Override
     public void showBackdrop(View sharp) {
         if (!Prefs.blur(this)) return;
-        Bitmap shot = Blur.snapshot(root, BACKDROP_DOWNSCALE);
+        Bitmap shot = Blur.snapshot(root);
         if (shot == null) return;
         menuFrost.set(shot, root.getWidth(), root.getHeight());
         backdrop.setImageBitmap(shot);

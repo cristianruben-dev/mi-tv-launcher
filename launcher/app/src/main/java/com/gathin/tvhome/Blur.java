@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Path;
@@ -12,18 +13,38 @@ import android.view.View;
  */
 final class Blur {
 
+    /**
+     * How soft every frosted surface is (dock, top bar, menus, settings, House Control's panel): a gaussian
+     * spread of 4dp, the same as House Control's CSS {@code blur(4px)}.
+     */
+    static final float RADIUS_DP = 4f;
+    /** Box radius 2 in three passes is close to a gaussian with a spread of √6 pixels of the small copy. */
+    private static final int BOX = 2, PASSES = 3;
+    private static final float BOX_SPREAD = 2.449f;
+
     private Blur() {
     }
 
+    /** The spread in screen pixels. */
+    private static float spreadPx() {
+        return RADIUS_DP * Resources.getSystem().getDisplayMetrics().density;
+    }
+
+    /** How much smaller the copy is drawn so the box passes give exactly {@link #RADIUS_DP} once scaled back up. */
+    private static float shrink() {
+        return Math.min(1f, BOX_SPREAD / spreadPx());
+    }
+
     /** A blurred, downscaled copy of what a view shows right now, for the backdrop of a menu. */
-    static Bitmap snapshot(View view, int downscale) {
-        int w = Math.max(1, view.getWidth() / downscale), h = Math.max(1, view.getHeight() / downscale);
+    static Bitmap snapshot(View view) {
+        float k = shrink();
+        int w = Math.max(1, Math.round(view.getWidth() * k)), h = Math.max(1, Math.round(view.getHeight() * k));
         try {
             Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bmp);
             c.scale(w / (float) view.getWidth(), h / (float) view.getHeight());
             view.draw(c);
-            blurInPlace(bmp, 3, 3);
+            blurInPlace(bmp, BOX, PASSES);
             return bmp;
         } catch (RuntimeException | OutOfMemoryError e) {
             return null;
@@ -46,12 +67,13 @@ final class Blur {
         }
     }
 
-    /** A soft, low-resolution copy of a bitmap, {@code downscale} times smaller. */
-    static Bitmap scaledBlur(Bitmap src, int downscale) {
+    /** A soft, low-resolution copy of a screen-sized bitmap, blurred by {@link #RADIUS_DP}. */
+    static Bitmap scaledBlur(Bitmap src) {
         if (src == null) return null;
-        int w = Math.max(8, src.getWidth() / downscale), h = Math.max(8, src.getHeight() / downscale);
+        float k = shrink();
+        int w = Math.max(8, Math.round(src.getWidth() * k)), h = Math.max(8, Math.round(src.getHeight() * k));
         Bitmap small = Bitmap.createScaledBitmap(src, w, h, true).copy(Bitmap.Config.ARGB_8888, true);
-        blurInPlace(small, 3, 3);
+        blurInPlace(small, BOX, PASSES);
         return small;
     }
 

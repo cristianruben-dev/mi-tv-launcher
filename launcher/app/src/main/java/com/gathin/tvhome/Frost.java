@@ -46,10 +46,10 @@ final class Frost {
         }
     }
 
-    /** About 160 pixels wide and blurred: enough for glass, cheap to draw on 1 GB TVs. */
+    /** A blurred copy for glass (see Blur.RADIUS_DP). */
     static Bitmap soften(Bitmap full) {
         if (full == null) return null;
-        return Blur.scaledBlur(full, Math.max(1, full.getWidth() / 160));
+        return Blur.scaledBlur(full);
     }
 
     /** Gives {@code v} a frosted background, or leaves its own when blur is off. */

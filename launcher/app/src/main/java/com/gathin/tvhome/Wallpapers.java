@@ -18,8 +18,6 @@ import java.util.Locale;
 final class Wallpapers {
 
     private static final String DIR = "wallpapers";
-    /** The dock's frosted glass blurs a copy this many times smaller than the wallpaper. */
-    private static final int BLUR_DOWNSCALE = 12;
 
     private Wallpapers() {
     }
@@ -64,7 +62,7 @@ final class Wallpapers {
 
     /** A soft, low-resolution copy of the wallpaper for the dock's frosted glass. */
     static Bitmap blurred(Bitmap src) {
-        return Blur.scaledBlur(src, BLUR_DOWNSCALE);
+        return Blur.scaledBlur(src);
     }
 
     private static Bitmap decode(Context ctx, String file, int reqW, int reqH, Bitmap.Config config) {
