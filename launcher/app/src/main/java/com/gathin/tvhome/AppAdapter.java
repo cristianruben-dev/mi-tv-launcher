@@ -69,8 +69,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
-    private final List<String> favourites;
+    /** Dock order: chosen in settings, or res/values/config.xml's dock_apps by default. */
+    private List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
@@ -79,11 +79,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
+        this.favourites = Prefs.dockApps(ctx);
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
+    }
+
+    /** Re-reads the dock order from the settings; call reload() afterwards. */
+    void refreshFavourites() {
+        favourites = Prefs.dockApps(ctx);
+    }
+
+    /** Every app the launcher shows, alphabetical, for the dock picker in settings. */
+    List<Entry> entriesAlphabetical() {
+        List<Entry> out = new ArrayList<>(items);
+        Collections.sort(out, (a, b) -> a.label.compareToIgnoreCase(b.label));
+        return out;
     }
 
     void reload() {

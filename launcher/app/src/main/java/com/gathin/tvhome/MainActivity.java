@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -26,7 +27,9 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LayoutAnimationController;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -49,7 +52,7 @@ import java.util.List;
 /**
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
-public class MainActivity extends Activity implements AppAdapter.TileListener {
+public class MainActivity extends Activity implements AppAdapter.TileListener, SettingsDialog.Host {
 
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
@@ -64,7 +67,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     private GradientDrawable ambientGlow;
     private int ambientColor;
+    private boolean ambientShown;
     private boolean heroShown;
+    private ImageView wallpaper;
+    private View topScrim;
+    private FadeFrame gridFrame;
+    private DockDecoration dock;
+    /** Asset name of the wallpaper on screen (or being loaded); "" for none, null before the first load. */
+    private String loadedWallpaper;
+    /** Section to reopen after the activity is recreated for a language change, or -1. */
+    private static int reopenSettings = -1;
     private TextView greeting;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
@@ -100,6 +112,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     };
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(Prefs.wrapLocale(base));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -119,12 +136,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
+        wallpaper = findViewById(R.id.wallpaper);
+        topScrim = findViewById(R.id.topScrim);
+        gridFrame = findViewById(R.id.gridFrame);
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        grid.addItemDecoration(new DockDecoration(COLUMNS, density));
+        dock = new DockDecoration(COLUMNS, density, root);
+        grid.addItemDecoration(dock);
+        applyDockStyle();
+        applyWallpaper();
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         adapter = new AppAdapter(this, this, COLUMNS);
@@ -144,6 +167,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                // Tiles reach the top edge only once the grid scrolls past the dock.
+                gridFrame.setFadeActive(rv.computeVerticalScrollOffset() > 0);
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 if (springY.isRunning()) springY.animateToFinalPosition(glassTargetY);
@@ -160,9 +185,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
-        btnInputs.setOnClickListener(v -> showInputs());
-        btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        animatePill(btnInputs, this::showInputs);
+        animatePill(btnWifi, () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+        animatePill(btnSettings, () -> showSettings(SettingsDialog.SECTION_LANGUAGE));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -193,6 +218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass.setAlpha(0f);
         heroShown = false;
         heroName.setAlpha(0f);
+        ambientShown = false;
         ambient.setAlpha(0f);
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
@@ -209,6 +235,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int pos = adapter.positionOf(returnKey);
             focusTile(pos >= 0 ? pos : returnSlot);
         });
+        if (reopenSettings >= 0) {
+            final int section = reopenSettings;
+            reopenSettings = -1;
+            grid.post(() -> showSettings(section));
+        }
     }
 
     @Override
@@ -272,7 +303,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
             showHero(position, r.top - dy);
         } else {
+            // Grid apps get the ambient glow in their colour too; only the dock shows the big name.
             hideHero();
+            showAmbient(adapter.ambientColorAt(position));
             // Scroll just enough so the whole glass (not only the tile) is visible.
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, false);
@@ -292,8 +325,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroName.setY(y);
             heroName.setTranslationX(0f);
             heroName.animate().alpha(1f).setDuration(260).start();
-            setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
             heroShown = true;
         } else if (changed) {
             heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
@@ -302,14 +333,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 heroName.setTranslationX(12 * density);
                 heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
             }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
-            }
         } else {
             heroName.setY(y);
+        }
+        showAmbient(color);
+    }
+
+    /** Fades the ambient glow in, or over to a new colour, for whichever tile has focus. */
+    private void showAmbient(int color) {
+        if (!ambientShown) {
+            setAmbient(color);
+            ambient.animate().alpha(1f).setDuration(600).withEndAction(null).start();
+            ambientShown = true;
+        } else if (color != ambientColor) {
+            ambientColor = color;   // a quick second move retargets instead of queueing another fade
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(ambientColor);
+                ambient.animate().alpha(1f).setDuration(500).withEndAction(null).start();
+            }).start();
         }
     }
 
@@ -319,11 +360,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambientGlow.setColors(new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c});
     }
 
+    /** Hides the dock's big app name; the ambient glow stays and follows the focused tile. */
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
         heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
     }
 
     private void hideGlass() {
@@ -420,6 +461,114 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Premium feel for the top pills: focus lifts and springs the pill up a little, a click presses it
+     * in and bounces it back before the action runs.
+     */
+    private void animatePill(View pill, Runnable action) {
+        final float focusScale = 1.09f;
+        pill.setOnFocusChangeListener((v, focused) -> v.animate()
+                .scaleX(focused ? focusScale : 1f).scaleY(focused ? focusScale : 1f)
+                .translationY(focused ? -2f * density : 0f)
+                .setDuration(focused ? 340 : 220)
+                .setInterpolator(focused ? new OvershootInterpolator(2.4f) : new DecelerateInterpolator())
+                .start());
+        pill.setOnClickListener(v -> v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(90)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> {
+                    float s = v.isFocused() ? focusScale : 1f;
+                    v.animate().scaleX(s).scaleY(s).setDuration(280)
+                            .setInterpolator(new OvershootInterpolator(3f)).start();
+                    action.run();
+                }).start());
+    }
+
+    // ---- settings --------------------------------------------------------------------------------
+
+    private void showSettings(int section) {
+        if (isFinishing() || isDestroyed()) return;
+        new SettingsDialog(this, this).show(section);
+    }
+
+    @Override
+    public List<AppAdapter.Entry> allApps() {
+        return adapter.entriesAlphabetical();
+    }
+
+    @Override
+    public void onDockAppsChanged() {
+        lastFocusedKey = null;
+        lastFocused = 0;
+        adapter.refreshFavourites();
+        adapter.reload();
+    }
+
+    @Override
+    public void onDockStyleChanged() {
+        applyDockStyle();
+    }
+
+    @Override
+    public void onWallpaperChanged() {
+        applyWallpaper();
+    }
+
+    @Override
+    public void onLanguageChanged() {
+        reopenSettings = SettingsDialog.SECTION_LANGUAGE;
+        recreate();
+    }
+
+    @Override
+    public void openTvSettings() {
+        open(new Intent(Settings.ACTION_SETTINGS));
+    }
+
+    private void applyDockStyle() {
+        dock.setBlur(Prefs.DOCK_BLUR.equals(Prefs.dockStyle(this)));
+        grid.invalidate();
+    }
+
+    /** Shows the chosen wallpaper (decoded off the main thread), or the plain black background for none. */
+    private void applyWallpaper() {
+        final String name = Prefs.wallpaper(this);
+        if (name.equals(loadedWallpaper)) return;
+        loadedWallpaper = name;
+        if (name.isEmpty()) {
+            setWallpaperBitmap(null, null);
+            return;
+        }
+        final int w = getResources().getDisplayMetrics().widthPixels;
+        final int h = getResources().getDisplayMetrics().heightPixels;
+        final Context app = getApplicationContext();
+        new Thread(() -> {
+            Bitmap full = Wallpapers.load(app, name, w, h);
+            Bitmap soft = Wallpapers.blurred(full);
+            runOnUiThread(() -> {
+                if (isDestroyed() || !name.equals(loadedWallpaper)) return;   // another choice came in meanwhile
+                if (full == null) {
+                    loadedWallpaper = "";
+                    setWallpaperBitmap(null, null);
+                } else {
+                    setWallpaperBitmap(full, soft);
+                }
+            });
+        }, "wallpaper").start();
+    }
+
+    private void setWallpaperBitmap(Bitmap full, Bitmap soft) {
+        boolean on = full != null;
+        wallpaper.setImageBitmap(full);
+        wallpaper.setVisibility(on ? View.VISIBLE : View.GONE);
+        topScrim.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (on) {
+            wallpaper.setAlpha(0f);
+            wallpaper.animate().alpha(1f).setDuration(350).start();
+        }
+        dock.setBlurSource(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
+        grid.invalidate();
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */

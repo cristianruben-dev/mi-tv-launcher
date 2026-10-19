@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Inicio</string>
+    <string name="inputs">Entradas</string>
+    <string name="wifi">Wi-Fi</string>
+    <string name="settings">Ajustes</string>
+    <string name="choose_input">Entradas</string>
+    <string name="connected">Conectado</string>
+    <string name="standby">En espera</string>
+    <string name="not_connected">Sin dispositivo</string>
+    <string name="live_tv">TV en vivo</string>
+    <string name="no_inputs">No se encontraron entradas</string>
+    <string name="good_morning">Buenos días</string>
+    <string name="good_afternoon">Buenas tardes</string>
+    <string name="good_evening">Buenas tardes</string>
+    <string name="good_night">Buenas noches</string>
+    <string name="ethernet">Ethernet</string>
+    <string name="offline">Sin conexión</string>
+    <string name="not_available">No disponible en esta TV</string>
+    <string name="cant_open">No se puede abrir %1$s</string>
+    <string name="date_format">EEEE  d \'de\' MMMM</string>
+    <string name="dream_name">Reloj</string>
+
+    <string name="settings_title">Ajustes</string>
+    <string name="section_language">Idioma</string>
+    <string name="section_dock">Apps del dock</string>
+    <string name="section_appearance">Apariencia</string>
+    <string name="section_wallpaper">Fondo de pantalla</string>
+    <string name="section_tv_settings">Ajustes de la TV</string>
+    <string name="language_hint">Idioma de la pantalla de inicio.</string>
+    <string name="language_system">Igual que la TV</string>
+    <string name="language_en">English</string>
+    <string name="language_es">Español</string>
+    <string name="dock_hint">Elige hasta 4 apps, en el orden que las quieras. Elegidas: %1$d de 4.</string>
+    <string name="dock_full">El dock tiene 4 apps. Quita una primero.</string>
+    <string name="dock_reset">Restaurar apps predeterminadas</string>
+    <string name="appearance_hint">Cómo se ve la banda del dock detrás de tus apps favoritas.</string>
+    <string name="dock_style_solid">Sólido</string>
+    <string name="dock_style_blur">Vidrio esmerilado (blur)</string>
+    <string name="wallpaper_hint">Fondo de la pantalla de inicio.</string>
+    <string name="wallpaper_none">Ninguno (colores del launcher)</string>
+    <string name="wallpaper_empty">Aún no hay fondos incluidos. Agrega imágenes en assets/wallpapers y vuelve a compilar.</string>
+    <string name="tv_settings_hint">Imagen, sonido, red y el resto de ajustes propios de la TV.</string>
+    <string name="open_tv_settings">Abrir ajustes de la TV</string>
+</resources>
