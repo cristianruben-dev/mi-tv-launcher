@@ -116,13 +116,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         notifyDataSetChanged();
     }
 
-    /** Grid span count: fits both the 4-slot dock and the chosen columns (their least common multiple). */
+    /** Dock slots: one per column. */
+    int dockSize() {
+        return columns;
+    }
+
     int spanCount() {
-        return DOCK * columns / gcd(DOCK, columns);
+        return columns;
     }
 
     int spanAt(int position) {
-        return spanCount() / (position < DOCK ? DOCK : columns);
+        return 1;
+    }
+
+    int gridWidth() {
+        return gridWidth;
     }
 
     /** The grid's inner width; tile sizes follow it. */

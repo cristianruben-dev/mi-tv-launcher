@@ -172,11 +172,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         // Down. Tiles are sized from the grid's width, so the chosen column count fills the row.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
-            if (inner > 0) grid.post(() -> adapter.setGridWidth(inner));
+            if (inner > 0 && inner != adapter.gridWidth()) {
+                grid.post(() -> {
+                    adapter.setGridWidth(inner);
+                    grid.post(this::refreshGlass);   // tiles changed size: the glass must follow
+                });
+            }
             int dockRow = adapter.dockRowHeight() + (int) ((6 + 12) * density);   // plus DockDecoration offsets
             int want = Math.max(0, (b - t) - dockRow - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+                grid.post(this::refreshGlass);   // the dock moved
             }
         });
 
@@ -330,6 +336,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, !Motion.enabled);
         }
+    }
+
+    /** Re-places the glass (and the dock's big name) on the focused tile after the tiles moved or resized. */
+    private void refreshGlass() {
+        View f = grid.findFocus();
+        if (f == null || f.getId() != R.id.card || !(f.getParent() instanceof View)) return;
+        int pos = grid.getChildAdapterPosition((View) f.getParent());
+        if (pos != RecyclerView.NO_POSITION) onTileFocused(pos, f);
     }
 
     // ---- top shelf -------------------------------------------------------------------------------
@@ -549,7 +563,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         int res;
         if (hour < 5) res = R.string.good_night;
         else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
+        else if (hour < 19) res = R.string.good_afternoon;   // Spanish says "buenas noches" once it is dark
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
         greeting.setText(res);
