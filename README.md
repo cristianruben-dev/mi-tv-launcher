@@ -8,7 +8,7 @@ Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). E
 (en inglés, con el método completo de debloat para otras marcas) está en
 [`docs/README-original.md`](docs/README-original.md).
 
-![Inicio con fondo de pantalla y 5 columnas](docs/screenshots/cuadricula-fondo-5-columnas.png)
+![Inicio con fondo de pantalla y 6 columnas](docs/screenshots/inicio-fondo-6-columnas.png)
 
 ---
 
@@ -31,7 +31,7 @@ Capturas tomadas en la TV con `adb shell screencap`.
 
 | Inicio | Menú al mantener pulsada una app |
 |---|---|
-| ![Inicio con el dock](docs/screenshots/inicio.png) | ![Menú de la app sobre el inicio desenfocado](docs/screenshots/menu-app.png) |
+| ![Inicio con el dock](docs/screenshots/inicio.png) | ![Menú desplegable junto a la app, con el resto desenfocado](docs/screenshots/menu-app.png) |
 
 | Ajustes: apps | Ajustes: ordenar apps |
 |---|---|
@@ -59,9 +59,9 @@ vidrio que el menú de Entradas.
 | Sección | Qué hace |
 |---|---|
 | **Idioma** | Inglés, español, o el idioma de la TV. Cambia textos, saludo y fecha al momento. |
-| **Apps del dock** | Elige hasta 4 apps y su orden (se numeran 1–4). Incluye "Restaurar apps predeterminadas". |
+| **Apps del dock** | Elige las apps del dock y su orden (una por columna; se numeran). Incluye "Restaurar apps predeterminadas". |
 | **Apps** | *Mostrar u ocultar*: desmarca una app para quitarla del inicio. *Ordenar*: pulsa OK para tomar una app, muévela con arriba y abajo y suéltala con OK o Atrás. "Volver al orden alfabético" lo deshace. |
-| **Personalización** | Columnas de la cuadrícula (3, 4 o 5); los iconos cambian de tamaño para llenar la fila. El dock siempre tiene 4. Atenuar el fondo de pantalla (sin atenuar, 20 %, 40 % o 60 %). |
+| **Personalización** | Columnas (3, 4, 5 o 6); los iconos cambian de tamaño para llenar la fila y el dock usa las mismas columnas, alineado con la cuadrícula. Atenuar el fondo de pantalla (sin atenuar, 20 %, 40 % o 60 %). |
 | **Fondo de pantalla** | 8 fondos incluidos, con miniatura, o **Ninguno** para el negro con brillo de color. |
 | **Protector de pantalla** | Empezar después de 5, 10, 15, 30 minutos o 1 hora, o desactivado. **Probar ahora** lo muestra al momento. |
 | **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher, blur (dock esmerilado y menús) y velocidad de las animaciones del sistema (normales, 0,5× o apagadas). |
@@ -73,7 +73,9 @@ Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valo
 
 ### Menú al mantener pulsada una app
 
-Mantén pulsado OK sobre cualquier app. El inicio se desenfoca detrás y aparece un menú con:
+Mantén pulsado OK sobre cualquier app. Aparece un desplegable junto a ella, con el mismo estilo que
+el menú de Entradas (debajo de la app, o encima si no cabe). El resto del inicio se desenfoca y la app
+pulsada queda nítida. Opciones:
 **Abrir**, **Mover al dock** / **Quitar del dock**, **Mover en la cuadrícula** (abre Ajustes → Apps con
 la app ya tomada), **Ocultar**, **Información de la app** y **Desinstalar** (solo en apps que no son
 del sistema). Si el dock está lleno, la app nueva ocupa el último lugar.
@@ -87,6 +89,9 @@ temporizador de apagado de la TV no cambia.
 
 ### Pantalla de inicio
 
+- **Saludo y fecha** en la línea pequeña de arriba ("BUENAS NOCHES · DOMINGO 18 DE OCTUBRE"), para
+  que la hora tenga su fila y las fechas largas no choquen con los botones. De 19 a 22 h dice "Buenas
+  noches".
 - **Desvanecido superior.** Al bajar a la cuadrícula, las apps se desvanecen bajo la barra de la hora
   y los botones en vez de cortarse de golpe. Con fondo de pantalla, la barra lleva un degradado oscuro.
 - **Brillo de color en todas las apps.** El fondo toma el color de la app enfocada, en el dock y en
@@ -193,8 +198,8 @@ modelo.
 | Archivo | Qué hace |
 |---|---|
 | [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio: barra superior, brillo de color, fondo y atenuado, columnas, navegación y fondo desenfocado de los menús. |
-| [`AppAdapter.java`](launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java) | Lista de apps: el dock (4), la cuadrícula con columnas variables, apps ocultas y orden propio. |
-| [`AppMenu.java`](launcher/app/src/main/java/com/gathin/tvhome/AppMenu.java) | Menú al mantener pulsada una app. |
+| [`AppAdapter.java`](launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java) | Lista de apps: el dock (una app por columna), la cuadrícula con columnas variables, apps ocultas y orden propio. |
+| [`AppMenu.java`](launcher/app/src/main/java/com/gathin/tvhome/AppMenu.java) | Desplegable al mantener pulsada una app. |
 | [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | El modal de ajustes con barra lateral y sus 8 secciones. |
 | [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
 | [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla, animaciones del sistema y memoria. |
