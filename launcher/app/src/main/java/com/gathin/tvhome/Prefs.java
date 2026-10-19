@@ -30,6 +30,23 @@ final class Prefs {
     private static final String KEY_WALLPAPER = "wallpaper";
     private static final String KEY_BLUR = "blur";
     private static final String KEY_ANIMATIONS = "animations";
+    private static final String KEY_TIME_FORMAT = "time_format";
+    private static final String KEY_POWER_ON_INPUT = "power_on_input";
+    private static final String KEY_SLEEP_AT = "sleep_at";
+    private static final String KEY_ROTATION = "wallpaper_rotation";
+    private static final String KEY_ROTATED_AT = "wallpaper_rotated_at";
+    private static final String KEY_ROTATE_PENDING = "wallpaper_rotate_pending";
+
+    static final String TIME_AUTO = "";
+    static final String TIME_12 = "12";
+    static final String TIME_24 = "24";
+    /** Power-on choices besides a TV input id: stay on the home screen, or Live TV. */
+    static final String POWER_ON_HOME = "";
+    static final String POWER_ON_LIVE_TV = "live_tv";
+    static final String ROTATE_NEVER = "";
+    static final String ROTATE_ON_POWER = "power_on";
+    static final String ROTATE_HOURLY = "hourly";
+    static final String ROTATE_DAILY = "daily";
     /** Older builds stored the dock look as "solid" or "blur"; read once as the default for KEY_BLUR. */
     private static final String KEY_LEGACY_DOCK_STYLE = "dock_style";
 
@@ -167,6 +184,62 @@ final class Prefs {
 
     static void setAnimations(Context ctx, boolean on) {
         sp(ctx).edit().putBoolean(KEY_ANIMATIONS, on).apply();
+    }
+
+    // ---- clock, power on, sleep timer ------------------------------------------------------------
+
+    /** {@link #TIME_AUTO} (as the TV), {@link #TIME_12} or {@link #TIME_24}. */
+    static String timeFormat(Context ctx) {
+        return sp(ctx).getString(KEY_TIME_FORMAT, TIME_AUTO);
+    }
+
+    static void setTimeFormat(Context ctx, String format) {
+        sp(ctx).edit().putString(KEY_TIME_FORMAT, format).apply();
+    }
+
+    /** What to open when the TV is turned on: {@link #POWER_ON_HOME}, {@link #POWER_ON_LIVE_TV} or an input id. */
+    static String powerOnInput(Context ctx) {
+        return sp(ctx).getString(KEY_POWER_ON_INPUT, POWER_ON_HOME);
+    }
+
+    static void setPowerOnInput(Context ctx, String input) {
+        sp(ctx).edit().putString(KEY_POWER_ON_INPUT, input).apply();
+    }
+
+    /** When the sleep timer turns the TV off (wall clock millis), or 0 when it is off. */
+    static long sleepAt(Context ctx) {
+        return sp(ctx).getLong(KEY_SLEEP_AT, 0L);
+    }
+
+    static void setSleepAt(Context ctx, long at) {
+        sp(ctx).edit().putLong(KEY_SLEEP_AT, at).apply();
+    }
+
+    // ---- wallpaper rotation ----------------------------------------------------------------------
+
+    static String rotation(Context ctx) {
+        return sp(ctx).getString(KEY_ROTATION, ROTATE_NEVER);
+    }
+
+    static void setRotation(Context ctx, String rotation) {
+        sp(ctx).edit().putString(KEY_ROTATION, rotation).putLong(KEY_ROTATED_AT, System.currentTimeMillis()).apply();
+    }
+
+    static long rotatedAt(Context ctx) {
+        return sp(ctx).getLong(KEY_ROTATED_AT, 0L);
+    }
+
+    static void setRotatedAt(Context ctx, long at) {
+        sp(ctx).edit().putLong(KEY_ROTATED_AT, at).apply();
+    }
+
+    /** Set when the TV turns on with "change on power on": the home screen rotates on its next resume. */
+    static boolean rotatePending(Context ctx) {
+        return sp(ctx).getBoolean(KEY_ROTATE_PENDING, false);
+    }
+
+    static void setRotatePending(Context ctx, boolean pending) {
+        sp(ctx).edit().putBoolean(KEY_ROTATE_PENDING, pending).apply();
     }
 
     private static List<String> split(String joined) {

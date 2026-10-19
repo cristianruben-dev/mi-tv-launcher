@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextClock;
 
 import java.util.Random;
 
@@ -49,6 +50,7 @@ final class ClockScene {
         this.ctx = ctx;
         content = root.findViewById(R.id.dreamContent);
         wallpaper = root.findViewById(R.id.dreamWallpaper);
+        Clocks.apply(ctx, root.findViewById(R.id.dreamClock), (TextClock) root.findViewById(R.id.dreamAmpm));
         View ambient = root.findViewById(R.id.dreamAmbient);
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         ambient.setBackground(glow);

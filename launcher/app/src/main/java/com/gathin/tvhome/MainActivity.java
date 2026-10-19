@@ -35,6 +35,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -73,6 +74,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private boolean ambientShown;
     private boolean heroShown;
     private TextView greeting;
+    private TextView sleepInfo;
     private TextView btnWifi;
     private ImageView wallpaper;
     private View wallpaperDim;
@@ -113,6 +115,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            maybeRotateWallpaper();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -141,6 +144,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
+        sleepInfo = findViewById(R.id.sleepInfo);
+        applyTimeFormat();
         btnWifi = findViewById(R.id.btnWifi);
         wallpaper = findViewById(R.id.wallpaper);
         wallpaperDim = findViewById(R.id.wallpaperDim);
@@ -212,7 +217,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         View btnSettings = findViewById(R.id.btnSettings);
         animatePill(btnInputs, this::showInputs);
         animatePill(btnWifi, () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        animatePill(btnSettings, () -> showSettings(SettingsDialog.SECTION_LANGUAGE));
+        animatePill(btnSettings, () -> showSettings(SettingsDialog.SECTION_GENERAL));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -250,6 +255,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         final int returnSlot = lastFocused;
         adapter.reload();
         if (Motion.enabled) grid.scheduleLayoutAnimation();
+        maybeRotateWallpaper();
         updateGreeting();
         updateWifiLabel();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -591,6 +597,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
         greeting.setText(res);
+        // Sleep timer: "· Off at 10:45 PM" next to the date while it runs.
+        long at = Prefs.sleepAt(this);
+        if (at > System.currentTimeMillis()) {
+            sleepInfo.setText(getString(R.string.sleep_indicator, Clocks.time(this, at)));
+            sleepInfo.setVisibility(View.VISIBLE);
+        } else {
+            sleepInfo.setVisibility(View.GONE);
+        }
+    }
+
+    private void applyTimeFormat() {
+        Clocks.apply(this, (TextClock) findViewById(R.id.clock), (TextClock) findViewById(R.id.ampm));
+    }
+
+    /** Hourly, daily or power-on wallpaper rotation (Settings → Wallpaper), checked on resume and each minute. */
+    private void maybeRotateWallpaper() {
+        String r = Prefs.rotation(this);
+        long now = System.currentTimeMillis(), last = Prefs.rotatedAt(this);
+        boolean due;
+        if (Prefs.ROTATE_ON_POWER.equals(r)) {
+            due = Prefs.rotatePending(this);
+        } else if (Prefs.ROTATE_HOURLY.equals(r)) {
+            due = now - last >= 3_600_000L;
+        } else if (Prefs.ROTATE_DAILY.equals(r)) {
+            Calendar a = Calendar.getInstance(), b = Calendar.getInstance();
+            a.setTimeInMillis(last);
+            b.setTimeInMillis(now);
+            due = a.get(Calendar.YEAR) != b.get(Calendar.YEAR) || a.get(Calendar.DAY_OF_YEAR) != b.get(Calendar.DAY_OF_YEAR);
+        } else {
+            due = false;
+        }
+        if (due) {
+            Prefs.setRotatePending(this, false);
+            Wallpapers.rotateNext(this);
+        }
+        applyWallpaper();
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
@@ -702,6 +744,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
+    public void onTimeFormatChanged() {
+        applyTimeFormat();
+        updateGreeting();
+    }
+
+    @Override
+    public void onSleepTimerChanged() {
+        updateGreeting();
+    }
+
+    @Override
     public void onDimChanged() {
         applyDim();
     }
@@ -723,7 +776,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     @Override
     public void onLanguageChanged() {
-        reopenSettings = SettingsDialog.SECTION_LANGUAGE;
+        reopenSettings = SettingsDialog.SECTION_GENERAL;
         recreate();
     }
 
@@ -782,6 +835,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         if (on) {
             wallpaper.setAlpha(0f);
             wallpaper.animate().alpha(1f).setDuration(Motion.ms(350)).start();
+            hideAmbient();
         }
         dock.setBlurSource(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
         grid.invalidate();

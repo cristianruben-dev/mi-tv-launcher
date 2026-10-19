@@ -40,6 +40,15 @@ final class Wallpapers {
         return out;
     }
 
+    /** Switches to the next bundled wallpaper (from "none", the first), for automatic rotation. */
+    static void rotateNext(Context ctx) {
+        List<String> all = list(ctx);
+        Prefs.setRotatedAt(ctx, System.currentTimeMillis());
+        if (all.isEmpty()) return;
+        int i = all.indexOf(Prefs.wallpaper(ctx));
+        Prefs.setWallpaper(ctx, all.get((i + 1) % all.size()));
+    }
+
     /** "blue_hills-2.jpg" → "Blue hills 2". */
     static String title(String file) {
         int dot = file.lastIndexOf('.');

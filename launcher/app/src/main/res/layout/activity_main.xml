@@ -157,6 +157,26 @@
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
+                    <!-- Sleep timer: when the TV turns off, shown only while the timer runs. -->
+                    <TextView
+                        android:id="@+id/sleepInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="22dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginBottom="10dp"
+                        android:drawableStart="@drawable/ic_sleep_small"
+                        android:drawablePadding="6dp"
+                        android:drawableTint="#E6FFC857"
+                        android:singleLine="true"
+                        android:textColor="#E6FFC857"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/outfit"
+                        android:fontVariationSettings="'wght' 500"
+                        android:letterSpacing="0.12"
+                        android:textAllCaps="true"
+                        android:visibility="gone" />
+
                 </LinearLayout>
             </LinearLayout>
 

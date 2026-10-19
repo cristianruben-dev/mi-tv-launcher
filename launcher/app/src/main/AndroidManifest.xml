@@ -19,8 +19,13 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+    <!-- Input at power on after a cold boot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Lets the input at power on open even before the home screen is in front; granted by deploy.sh. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
+        android:name=".TvHomeApp"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
@@ -51,6 +56,32 @@
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:screenOrientation="landscape" />
+
+        <!-- Input at power on, after a cold boot (standby is handled in TvHomeApp). -->
+        <receiver
+            android:name=".TvHomeApp$BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Sleep timer: the alarms, and the device admin that may turn the screen off (made active by
+             deploy.sh). -->
+        <receiver
+            android:name=".SleepTimer$Receiver"
+            android:exported="false" />
+        <receiver
+            android:name=".SleepTimer$Admin"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Screensaver: turned on and timed in Settings → Screensaver. -->
         <service

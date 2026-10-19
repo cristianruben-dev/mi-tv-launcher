@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A wallpaper in the settings gallery: the picture, a white ring when focused, a check when chosen. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:layout_marginStart="6dp"
+    android:layout_marginEnd="6dp"
+    android:padding="3dp"
+    android:background="@drawable/wallpaper_tile_bg"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="match_parent"
+        android:layout_height="84dp"
+        android:scaleType="centerCrop"
+        android:background="#FF1C1C1E"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/noneLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/wallpaper_none_short"
+        android:textColor="#B3FFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="@font/outfit"
+        android:fontVariationSettings="'wght' 500"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/selected"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="7dp"
+        android:padding="3dp"
+        android:src="@drawable/ic_check"
+        android:tint="#FF111111"
+        android:background="@drawable/badge_white"
+        android:visibility="gone"
+        android:contentDescription="@null" />
+</FrameLayout>
