@@ -44,6 +44,10 @@ fi
 if ! OUT=$(adb -s "$DEVICE" install -r "$APK" 2>&1); then
   if echo "$OUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
     echo "La firma cambió: desinstalo la versión anterior y vuelvo a instalar."
+    # El temporizador de apagado hace al launcher administrador del dispositivo, y Android no deja
+    # desinstalar un administrador activo. Si esto falla, desactívalo en Ajustes de la TV → Seguridad
+    # → Administradores de dispositivos y vuelve a ejecutar el script.
+    adb -s "$DEVICE" shell dpm remove-active-admin --user 0 "'$PKG/.SleepTimer\$Admin'" >/dev/null 2>&1 || true
     adb -s "$DEVICE" uninstall "$PKG" >/dev/null
     adb -s "$DEVICE" install "$APK"
   else
@@ -56,6 +60,10 @@ fi
 adb -s "$DEVICE" shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION
 adb -s "$DEVICE" shell pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS
 adb -s "$DEVICE" shell appops set "$PKG" WRITE_SETTINGS allow
+# Abrir la entrada elegida al encender la TV aunque el inicio no esté delante.
+adb -s "$DEVICE" shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow
+# Temporizador de apagado: solo puede apagar la pantalla un administrador del dispositivo.
+adb -s "$DEVICE" shell dpm set-active-admin --user 0 "'$PKG/.SleepTimer\$Admin'" >/dev/null 2>&1 || true
 adb -s "$DEVICE" shell cmd package set-home-activity --user 0 "$HOME_ACTIVITY" >/dev/null
 adb -s "$DEVICE" shell input keyevent KEYCODE_HOME
 echo "Listo: el launcher está instalado y es la pantalla de inicio."
