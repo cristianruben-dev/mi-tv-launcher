@@ -506,6 +506,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         }
         if (inDock) {
             dockApps.remove(e.pkg);
+            // Fill the gap with the first grid app ourselves: left to the default fill, the removed app
+            // could land back in the same slot when it is first in grid order (e.g. alphabetically).
+            AppAdapter.Entry next = adapter.entryAt(slots);
+            if (next != null) dockApps.add(next.pkg);
         } else {
             if (dockApps.size() >= slots) {
                 // Full: the new app takes the last slot.
@@ -515,6 +519,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
                         Toast.LENGTH_SHORT).show();
             }
             dockApps.add(e.pkg);
+        }
+        // Keep apps saved for slots that more columns would show (6 columns → 4 and back).
+        for (String saved : Prefs.dockApps(this)) {
+            if (!dockApps.contains(saved) && !saved.equals(e.pkg)) dockApps.add(saved);
         }
         Prefs.setDockApps(this, dockApps);
         lastFocusedKey = e.component.flattenToShortString();
