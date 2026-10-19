@@ -29,25 +29,29 @@ Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). E
 
 Capturas tomadas en la TV con `adb shell screencap`.
 
-| Inicio | Menú al mantener pulsada una app |
+| Inicio con fondo y 6 columnas | Menú al mantener pulsada una app |
 |---|---|
-| ![Inicio con el dock](docs/screenshots/inicio.png) | ![Menú desplegable junto a la app, con el resto desenfocado](docs/screenshots/menu-app.png) |
+| ![Inicio con fondo de pantalla](docs/screenshots/inicio-fondo-6-columnas.png) | ![Menú desplegable junto a la app](docs/screenshots/menu-app.png) |
 
-| Ajustes: apps | Ajustes: ordenar apps |
+| Ajustes: general | Ajustes: pantalla de inicio |
 |---|---|
-| ![Mostrar u ocultar apps](docs/screenshots/ajustes-apps.png) | ![Moviendo una app en la cuadrícula](docs/screenshots/ajustes-ordenar.png) |
+| ![Idioma y entrada al encender](docs/screenshots/ajustes-general.png) | ![Columnas y formato de hora](docs/screenshots/ajustes-pantalla-inicio.png) |
 
-| Ajustes: personalización | Ajustes: apps del dock |
+| Ajustes: apps (dock) | Ajustes: ordenar apps |
 |---|---|
-| ![Columnas y atenuar fondo](docs/screenshots/ajustes-personalizacion.png) | ![Selector de las 4 apps del dock](docs/screenshots/ajustes-apps-dock.png) |
+| ![Apps del dock](docs/screenshots/ajustes-apps-dock.png) | ![Moviendo una app en la cuadrícula](docs/screenshots/ajustes-ordenar.png) |
+
+| Ajustes: fondo de pantalla | Ajustes: apagado automático |
+|---|---|
+| ![Galería de fondos](docs/screenshots/ajustes-fondo.png) | ![Temporizador de apagado](docs/screenshots/ajustes-apagado.png) |
 
 | Ajustes: protector de pantalla | Protector de pantalla |
 |---|---|
 | ![Tiempo de espera y Probar ahora](docs/screenshots/ajustes-protector.png) | ![Reloj sobre el fondo de pantalla](docs/screenshots/protector.png) |
 
-| Ajustes: rendimiento |  |
+| Ajustes: rendimiento | Inicio con el temporizador en marcha |
 |---|---|
-| ![Memoria, liberar memoria, animaciones y blur](docs/screenshots/ajustes-rendimiento.png) |  |
+| ![Memoria, animaciones y blur](docs/screenshots/ajustes-rendimiento.png) | ![Aviso de apagado junto a la hora](docs/screenshots/inicio-temporizador.png) |
 
 ## Funciones
 
@@ -58,13 +62,13 @@ vidrio que el menú de Entradas.
 
 | Sección | Qué hace |
 |---|---|
-| **Idioma** | Inglés, español, o el idioma de la TV. Cambia textos, saludo y fecha al momento. |
-| **Apps del dock** | Elige las apps del dock y su orden (una por columna; se numeran). Incluye "Restaurar apps predeterminadas". |
-| **Apps** | *Mostrar u ocultar*: desmarca una app para quitarla del inicio. *Ordenar*: pulsa OK para tomar una app, muévela con arriba y abajo y suéltala con OK o Atrás. "Volver al orden alfabético" lo deshace. |
-| **Personalización** | Columnas (3, 4, 5 o 6); los iconos cambian de tamaño para llenar la fila y el dock usa las mismas columnas, alineado con la cuadrícula. Atenuar el fondo de pantalla (sin atenuar, 20 %, 40 % o 60 %). |
-| **Fondo de pantalla** | 8 fondos incluidos, con miniatura, o **Ninguno** para el negro con brillo de color. |
+| **General** | Idioma (inglés, español o el de la TV) y **entrada al encender**: pantalla de inicio, cualquier HDMI/AV o TV en vivo, con "Probar ahora". |
+| **Pantalla de inicio** | Columnas (3, 4, 5 o 6): los iconos cambian de tamaño y el dock usa las mismas columnas. **Formato de hora**: como la TV, 12 o 24 horas (también en el protector). |
+| **Apps** | Tres modos: **Dock** (elige sus apps y su orden, una por columna), **Mostrar u ocultar** y **Ordenar** (toma una app con OK, muévela con arriba/abajo y suéltala con OK o Atrás). |
+| **Fondo de pantalla** | Galería de los fondos incluidos, sin nombres, o "Sin fondo". **Atenuar** el fondo (20 %, 40 % o 60 %) y **cambiar automáticamente**: cada vez que se enciende la TV, cada hora o cada día. |
 | **Protector de pantalla** | Empezar después de 5, 10, 15, 30 minutos o 1 hora, o desactivado. **Probar ahora** lo muestra al momento. |
-| **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher, blur (dock esmerilado y menús) y velocidad de las animaciones del sistema (normales, 0,5× o apagadas). |
+| **Apagado automático** | Apaga la TV en 15, 30, 45 minutos, 1 h, 1 h 30 o 2 h, aunque estés viendo algo. Avisa un minuto antes, y la hora de apagado se ve junto al reloj mientras está en marcha. |
+| **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher, blur y velocidad de las animaciones del sistema. |
 | **Ajustes de la TV** | Abre los ajustes de Android (imagen, sonido, red…). |
 
 Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valores por defecto
@@ -94,8 +98,8 @@ temporizador de apagado de la TV no cambia.
   noches".
 - **Desvanecido superior.** Al bajar a la cuadrícula, las apps se desvanecen bajo la barra de la hora
   y los botones en vez de cortarse de golpe. Con fondo de pantalla, la barra lleva un degradado oscuro.
-- **Brillo de color en todas las apps.** El fondo toma el color de la app enfocada, en el dock y en
-  la cuadrícula.
+- **Brillo de color.** Sin fondo de pantalla, el fondo negro toma el color de la app enfocada, en el
+  dock y en la cuadrícula. Con fondo de pantalla no se usa: la imagen ya es el fondo.
 - **Botones superiores con animación.** Al enfocarlos se escalan y suben con un rebote suave; al
   pulsarlos se hunden y rebotan antes de abrir.
 
@@ -142,8 +146,9 @@ instala, da los permisos y deja el launcher como inicio:
 2. Instala el APK por Wi-Fi. Si la firma cambió (de debug a release), desinstala la anterior primero;
    en ese caso los ajustes del launcher vuelven a los valores por defecto.
 3. Da los permisos que la TV no deja dar desde sus menús: ubicación (para leer el nombre del Wi-Fi),
-   `WRITE_SECURE_SETTINGS` y `WRITE_SETTINGS` (para el protector de pantalla y las animaciones del
-   sistema).
+   `WRITE_SECURE_SETTINGS` y `WRITE_SETTINGS` (protector de pantalla y animaciones del sistema),
+   `SYSTEM_ALERT_WINDOW` (abrir la entrada al encender) y **administrador del dispositivo** (el
+   apagado automático: Android solo deja apagar la pantalla a un administrador).
 4. Lo pone como pantalla de inicio.
 
 ### Clave de firma
@@ -166,6 +171,12 @@ storePassword=TU_CONTRASEÑA
 keyAlias=tvhome
 keyPassword=TU_CONTRASEÑA
 ```
+
+### Desinstalar el launcher
+
+Por el apagado automático, el launcher es administrador del dispositivo, y Android no deja desinstalar
+un administrador activo. Antes de desinstalarlo, desactívalo en **Ajustes de la TV → Seguridad →
+Administradores de dispositivos**.
 
 ## Quitar el bloatware
 
@@ -203,6 +214,10 @@ modelo.
 | [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | El modal de ajustes con barra lateral y sus 8 secciones. |
 | [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
 | [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla, animaciones del sistema y memoria. |
+| [`SleepTimer.java`](launcher/app/src/main/java/com/gathin/tvhome/SleepTimer.java) | Apagado automático: alarmas, aviso previo y el administrador que apaga la pantalla. |
+| [`TvHomeApp.java`](launcher/app/src/main/java/com/gathin/tvhome/TvHomeApp.java) | Detecta el encendido de la TV para la entrada al encender y el cambio de fondo. |
+| [`Inputs.java`](launcher/app/src/main/java/com/gathin/tvhome/Inputs.java) | Entradas de la TV (HDMI, AV, TV en vivo) y cómo abrirlas. |
+| [`Clocks.java`](launcher/app/src/main/java/com/gathin/tvhome/Clocks.java) | Formato de 12 o 24 horas para los relojes. |
 | [`ClockScene.java`](launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java) | La escena del protector, compartida por [`ClockDream`](launcher/app/src/main/java/com/gathin/tvhome/ClockDream.java) (el del sistema) y [`ScreensaverActivity`](launcher/app/src/main/java/com/gathin/tvhome/ScreensaverActivity.java) (Probar ahora). |
 | [`Blur.java`](launcher/app/src/main/java/com/gathin/tvhome/Blur.java) | Blur por software: captura desenfocada del inicio y copias suaves del fondo. |
 | [`Wallpapers.java`](launcher/app/src/main/java/com/gathin/tvhome/Wallpapers.java) | Lista, carga y miniaturas de los fondos. |
