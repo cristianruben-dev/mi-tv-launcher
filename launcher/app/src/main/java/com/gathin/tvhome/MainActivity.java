@@ -602,7 +602,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         int res;
         if (hour < 5) res = R.string.good_night;
         else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 19) res = R.string.good_afternoon;   // Spanish says "buenas noches" once it is dark
+        else if (hour < getResources().getInteger(R.integer.evening_from)) res = R.string.good_afternoon;
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
         greeting.setText(res);
