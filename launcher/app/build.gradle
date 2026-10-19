@@ -18,8 +18,8 @@ android {
         minSdk 28
         // 28, not higher: from 29 Android no longer lets apps switch Wi-Fi on and off (Control Center).
         targetSdk 28
-        versionCode 3
-        versionName '3.0'
+        versionCode 4
+        versionName '4.0'
     }
 
     signingConfigs {
