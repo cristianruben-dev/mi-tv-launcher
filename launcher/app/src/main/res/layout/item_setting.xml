@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row in the settings dialog, sidebar or content. Same look as the Inputs dropdown rows. -->
+<!-- One row of the settings screen: icon, title, then a value with a chevron, a switch, a badge or a check. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="44dp"
+    android:layout_marginBottom="6dp"
+    android:minHeight="50dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
+    android:paddingStart="18dp"
+    android:paddingEnd="16dp"
     android:paddingTop="4dp"
     android:paddingBottom="4dp"
-    android:background="@drawable/input_row_bg"
+    android:background="@drawable/settings_row_bg"
     android:focusable="true"
     android:clickable="true">
 
     <ImageView
         android:id="@+id/icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginEnd="12dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="14dp"
         android:scaleType="centerCrop"
         android:tint="@drawable/pill_text"
         android:duplicateParentState="true"
@@ -32,11 +33,43 @@
         android:layout_marginEnd="12dp"
         android:textColor="@drawable/pill_text"
         android:duplicateParentState="true"
-        android:textSize="15sp"
+        android:textSize="17sp"
         android:fontFamily="@font/outfit"
         android:fontVariationSettings="'wght' 500"
         android:singleLine="true"
         android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="220dp"
+        android:textColor="@drawable/pill_text_dim"
+        android:duplicateParentState="true"
+        android:textSize="15sp"
+        android:fontFamily="@font/outfit"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/chevron"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:text="›"
+        android:textColor="@drawable/pill_text_dim"
+        android:duplicateParentState="true"
+        android:textSize="20sp"
+        android:includeFontPadding="false"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/toggle"
+        android:layout_width="50dp"
+        android:layout_height="28dp"
+        android:background="@drawable/toggle"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/badge"
@@ -54,8 +87,8 @@
 
     <ImageView
         android:id="@+id/check"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:src="@drawable/ic_check"
         android:tint="@drawable/pill_text"
         android:duplicateParentState="true"

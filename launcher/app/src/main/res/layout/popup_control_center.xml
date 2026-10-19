@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Control Center, tvOS style: the time, a row of switches, then tiles for quick actions. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/glass_panel"
+    android:padding="14dp"
+    android:elevation="12dp"
+    android:clipChildren="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal"
+        android:baselineAligned="true">
+
+        <TextClock
+            android:id="@+id/ccClock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFFFF"
+            android:textSize="30sp"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 400"
+            android:includeFontPadding="false" />
+
+        <TextClock
+            android:id="@+id/ccAmpm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:textColor="#B3FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 500"
+            android:textAllCaps="true" />
+
+        <TextClock
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:gravity="end"
+            android:format12Hour="EEE d MMM"
+            android:format24Hour="EEE d MMM"
+            android:textColor="#A6FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 500"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <!-- Switches: on and off at a press, like Wi-Fi in tvOS. -->
+    <LinearLayout
+        android:id="@+id/switches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:id="@+id/tiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+</LinearLayout>

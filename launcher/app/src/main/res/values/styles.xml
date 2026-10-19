@@ -6,12 +6,11 @@
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
-    <!-- Settings modal: floating, transparent window over a dimmed home screen. -->
-    <style name="SettingsDialog" parent="android:Theme.Material.Dialog.NoActionBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:backgroundDimAmount">0.55</item>
+    <!-- Settings: a full-screen window over the home screen (it draws its own backdrop). -->
+    <style name="SettingsDialog" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowElevation">0dp</item>
     </style>

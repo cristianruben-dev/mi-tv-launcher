@@ -35,6 +35,14 @@ final class SleepTimer {
         return dpm != null && dpm.isAdminActive(admin(ctx));
     }
 
+    /** Standby right now (Control Center → Turn off). False when the launcher is not a device admin. */
+    static boolean sleepNow(Context ctx) {
+        DevicePolicyManager dpm = ctx.getSystemService(DevicePolicyManager.class);
+        if (dpm == null || !dpm.isAdminActive(admin(ctx))) return false;
+        dpm.lockNow();
+        return true;
+    }
+
     /** Minutes left, rounded up, or 0 when the timer is off or already past. */
     static int minutesLeft(Context ctx) {
         long left = Prefs.sleepAt(ctx) - System.currentTimeMillis();

@@ -37,6 +37,9 @@ final class AppMenu {
         void showBackdrop(View sharp);
 
         void hideBackdrop();
+
+        /** The blurred home screen behind the menu, for its glass. */
+        Frost.Source menuFrost();
     }
 
     private final Activity act;
@@ -105,8 +108,10 @@ final class AppMenu {
         panel.setPivotY(below ? 0f : height);
         panel.setScaleY(0.92f);
         panel.setTranslationY((below ? -8 : 8) * density);
+        Frost.apply(panel, host.menuFrost(), 20 * density, 0x40000000);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(Motion.ms(220))
-                .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+                .setInterpolator(new DecelerateInterpolator(1.6f))
+                .withEndAction(panel::invalidate).start();   // the glass follows where the panel settled
         first.requestFocus();
     }
 

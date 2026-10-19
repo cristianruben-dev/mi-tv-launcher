@@ -50,7 +50,7 @@ Todas las pantallas del launcher, tomadas en la TV con `adb shell screencap`.
     <td width="50%" valign="top"><img src="docs/screenshots/10-ajustes-fondo.jpg" alt="Ajustes · Fondo de pantalla"><br><b>Ajustes · Fondo de pantalla</b><br><sub>Galería de fondos.</sub></td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="docs/screenshots/11-ajustes-fondo-opciones.jpg" alt="Ajustes · Fondo · Opciones"><br><b>Ajustes · Fondo · Opciones</b><br><sub>Atenuar y cambio automático.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/11-ajustes-fondo-opciones.jpg" alt="Ajustes · Fondo · Opciones"><br><b>Ajustes · Fondo · Opciones</b><br><sub>Cambio automático.</sub></td>
     <td width="50%" valign="top"><img src="docs/screenshots/12-ajustes-protector.jpg" alt="Ajustes · Protector de pantalla"><br><b>Ajustes · Protector de pantalla</b><br><sub>Tiempo de espera y Probar ahora.</sub></td>
   </tr>
   <tr>
@@ -67,15 +67,17 @@ Todas las pantallas del launcher, tomadas en la TV con `adb shell screencap`.
 
 ### Ajustes
 
-El botón **Ajustes** de la barra superior abre un modal con barra lateral, con el mismo estilo de
-vidrio que el menú de Entradas.
+El botón de **Ajustes** (el engranaje de la barra superior) abre los ajustes a pantalla completa sobre el fondo de
+pantalla: las secciones a la izquierda y, a la derecha, las opciones de la sección enfocada. Derecha entra
+en las opciones; Izquierda o Atrás vuelven a las secciones. En **Fondo de pantalla**, al moverte por la
+fila de fondos cada uno se ve detrás de los ajustes; OK lo usa, y si sales sin OK vuelve el actual.
 
 | Sección | Qué hace |
 |---|---|
 | **General** | Idioma (inglés, español o el de la TV) y **entrada al encender**: pantalla de inicio, cualquier HDMI/AV o TV en vivo, con "Probar ahora". |
 | **Pantalla de inicio** | Columnas (3, 4, 5 o 6): los iconos cambian de tamaño y el dock usa las mismas columnas. **Formato de hora**: como la TV, 12 o 24 horas (también en el protector). |
 | **Apps** | Tres modos: **Dock** (elige sus apps y su orden, una por columna), **Mostrar u ocultar** y **Ordenar** (toma una app con OK, muévela con arriba/abajo y suéltala con OK o Atrás). |
-| **Fondo de pantalla** | Galería de los fondos incluidos, sin nombres, o "Sin fondo". **Atenuar** el fondo (20 %, 40 % o 60 %) y **cambiar automáticamente**: cada vez que se enciende la TV, cada hora o cada día. |
+| **Fondo de pantalla** | Una fila con los fondos incluidos, que se previsualizan detrás de los ajustes; OK elige. **Cambiar automáticamente**: cada vez que se enciende la TV, cada hora o cada día. |
 | **Protector de pantalla** | Empezar después de 5, 10, 15, 30 minutos o 1 hora, o desactivado. **Probar ahora** lo muestra al momento. |
 | **Apagado automático** | Apaga la TV en 15, 30, 45 minutos, 1 h, 1 h 30 o 2 h, aunque estés viendo algo. Avisa un minuto antes, y la hora de apagado se ve junto al reloj mientras está en marcha. |
 | **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher, blur y velocidad de las animaciones del sistema. |
@@ -96,8 +98,7 @@ del sistema). Si el dock está lleno, la app nueva ocupa el último lugar.
 
 ### Protector de pantalla
 
-El reloj del launcher se mueve despacio sobre tu fondo de pantalla oscurecido, o sobre un brillo de
-color si no hay fondo. Cambia de sitio cada minuto para no marcar el panel. Se activa con el sistema
+El reloj del launcher se mueve despacio sobre tu fondo de pantalla oscurecido. Cambia de sitio cada minuto para no marcar el panel. Se activa con el sistema
 de Android, así que también funciona fuera del launcher. "Desactivado" solo quita el protector; el
 temporizador de apagado de la TV no cambia.
 
@@ -107,11 +108,29 @@ temporizador de apagado de la TV no cambia.
   que la hora tenga su fila y las fechas largas no choquen con los botones. De 19 a 22 h dice "Buenas
   noches".
 - **Desvanecido superior.** Al bajar a la cuadrícula, las apps se desvanecen bajo la barra de la hora
-  y los botones en vez de cortarse de golpe. Con fondo de pantalla, la barra lleva un degradado oscuro.
-- **Brillo de color.** Sin fondo de pantalla, el fondo negro toma el color de la app enfocada, en el
-  dock y en la cuadrícula. Con fondo de pantalla no se usa: la imagen ya es el fondo.
-- **Botones superiores con animación.** Al enfocarlos se escalan y suben con un rebote suave; al
-  pulsarlos se hunden y rebotan antes de abrir.
+  y los botones en vez de cortarse de golpe, y la barra lleva un degradado oscuro sobre el fondo.
+- **Siempre hay fondo de pantalla.** Si el elegido ya no está, se usa el primero de la lista.
+- **Botones superiores con animación.** Al enfocarlos crecen desde el centro con un rebote suave; al
+  pulsarlos se hunden y rebotan antes de abrir. Ajustes y el Centro de control son solo un icono.
+
+### Centro de control
+
+El botón de los dos interruptores, junto a Ajustes, abre un panel como el de tvOS sobre el inicio
+desenfocado: la hora y la fecha; una fila de **interruptores** que se encienden y apagan con OK (azul =
+encendido): **Wi‑Fi**, **Bluetooth**, **Silencio** y **Protector de pantalla**; y cuatro accesos: **Apagar**
+(reposo ahora), **Apagado automático** (cada OK pasa a la siguiente duración: 15 min, 30 min… y
+Desactivado), **Liberar memoria** (con la memoria libre) y **Ajustes de la TV**.
+
+- Apagar y el apagado automático necesitan el administrador del dispositivo, y el interruptor del
+  protector el permiso `WRITE_SECURE_SETTINGS`; los dos los da `deploy.sh`.
+- Para poder encender y apagar el Wi‑Fi, el launcher usa `targetSdk 28`: desde Android 10, las apps que
+  apuntan a 29 o más ya no pueden hacerlo.
+
+### Vidrio esmerilado
+
+Con **Rendimiento → Blur** encendido, todo usa el vidrio del dock: los botones de la barra superior, los
+desplegables (Entradas, Wi‑Fi, el menú de una app), el Centro de control y las filas de los ajustes muestran
+detrás el fondo desenfocado con un velo translúcido. Con el blur apagado vuelven a ser sólidos.
 
 ## Fondos de pantalla
 
@@ -121,7 +140,6 @@ Acantilados estelares, Bajo el mar, Bosque al atardecer, Cometa sobre las nubes,
 atardecer, Mirando los planetas, Nebulosa roja y Portal en ruinas.
 
 - Formatos: `.jpg`, `.jpeg`, `.png` o `.webp`.
-- El nombre del archivo es el título en los ajustes: `playa_azul-2.jpg` aparece como "Playa azul 2".
 - Usa 1920 px de ancho. Con macOS puedes convertir cualquier imagen así:
 
   ```bash
@@ -218,10 +236,12 @@ modelo.
 
 | Archivo | Qué hace |
 |---|---|
-| [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio: barra superior, brillo de color, fondo y atenuado, columnas, navegación y fondo desenfocado de los menús. |
+| [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio: barra superior, fondo, columnas, navegación y fondo desenfocado de los menús. |
 | [`AppAdapter.java`](launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java) | Lista de apps: el dock (una app por columna), la cuadrícula con columnas variables, apps ocultas y orden propio. |
 | [`AppMenu.java`](launcher/app/src/main/java/com/gathin/tvhome/AppMenu.java) | Desplegable al mantener pulsada una app. |
-| [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | El modal de ajustes con barra lateral y sus 8 secciones. |
+| [`ControlCenter.java`](launcher/app/src/main/java/com/gathin/tvhome/ControlCenter.java) | El Centro de control: la hora, los interruptores y los accesos rápidos. |
+| [`Frost.java`](launcher/app/src/main/java/com/gathin/tvhome/Frost.java) | El vidrio esmerilado del dock para cualquier vista: botones, desplegables y filas de ajustes. |
+| [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | Los ajustes a pantalla completa, sus 8 secciones y la fila de fondos con vista previa. |
 | [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
 | [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla, animaciones del sistema y memoria. |
 | [`SleepTimer.java`](launcher/app/src/main/java/com/gathin/tvhome/SleepTimer.java) | Apagado automático: alarmas, aviso previo y el administrador que apaga la pantalla. |

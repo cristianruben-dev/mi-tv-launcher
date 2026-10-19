@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -30,8 +31,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The launcher's settings modal: a glass panel in the style of the Inputs dropdown, with a sidebar of
- * sections on the left. Moving through the sidebar switches the section; Right enters it, Left comes back.
+ * The launcher's settings, full screen over the wallpaper: the sections on the left, the focused section's
+ * options on the right. Moving through the sections switches the options; Right enters them, Left and Back
+ * come back. In Wallpaper, moving along the strip of wallpapers shows each one behind the settings; OK keeps it.
  */
 final class SettingsDialog {
 
@@ -49,8 +51,6 @@ final class SettingsDialog {
 
         void onTimeFormatChanged();
 
-        void onDimChanged();
-
         void onWallpaperChanged();
 
         void onBlurChanged();
@@ -65,6 +65,12 @@ final class SettingsDialog {
         void openTvSettings();
 
         void previewScreensaver();
+
+        /** The wallpaper on the home screen right now, or null for none. */
+        Bitmap wallpaperBitmap();
+
+        /** Its blurred copy, for frosted glass. */
+        Frost.Source wallpaperFrost();
     }
 
     static final int SECTION_GENERAL = 0;
@@ -83,10 +89,13 @@ final class SettingsDialog {
             R.drawable.ic_apps, R.drawable.ic_wallpaper, R.drawable.ic_screensaver,
             R.drawable.ic_sleep, R.drawable.ic_performance, R.drawable.ic_settings};
 
+    /** Darkens the frosted rows a little: they sit over the bright, unscrimmed wallpaper. */
+    private static final int ROW_TINT = 0x4D000000;
+
     /** Apps section modes. */
     private static final int APPS_DOCK = 0, APPS_VISIBILITY = 1, APPS_ORDER = 2;
-    /** Wallpapers per row in the gallery. */
-    private static final int GALLERY_COLUMNS = 3;
+    /** The full wallpaper is decoded once focus has rested this long on its thumbnail. */
+    private static final long PREVIEW_DELAY_MS = 180;
 
     private final Activity act;
     private final Host host;
@@ -94,12 +103,25 @@ final class SettingsDialog {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<View> sectionRows = new ArrayList<>();
     private Dialog dialog;
+    private ImageView backdrop;
+    private View scrim;
+    private View page;
     private LinearLayout rows;
-    private TextView sectionTitle;
-    private TextView sectionHint;
     private ScrollView scroll;
+    private TextView sectionHint;
+    /** Wallpaper section: the strip of wallpaper tiles, or null in other sections. */
+    private LinearLayout strip;
+    /** Where Right from the sections lands, when not the first option (the wallpaper in use). */
+    private View entry;
+    /** The wallpaper behind the settings: the home screen's, or the one just chosen. */
+    private Bitmap homeBitmap;
+    /** Its blurred copy, for the frosted rows (null with blur off). */
+    private Bitmap homeSoft;
+    /** What the frosted rows blur right now: the wallpaper in use, or the one being previewed. */
+    private final Frost.Source frost = new Frost.Source();
+    /** The section whose options are on the right. */
     private int current = -1;
-    /** Bumped on every section switch so late thumbnail loads land only in the section that asked. */
+    /** Bumped on every section switch so late loads land only in the section that asked. */
     private int generation;
     private int appsMode = APPS_DOCK;
     /** Apps section, order mode: the row picked up for moving, or null. */
@@ -107,10 +129,20 @@ final class SettingsDialog {
     /** App to pick up when the Apps section opens (from the long press menu's "Move in the grid"). */
     private String carryOnOpen;
     /**
-     * True while a section's rows are replaced. Removing the focused row sends focus to the first sidebar
-     * entry, and that focus change must not switch sections.
+     * True while a section's rows are replaced. Removing the focused row sends focus to the first section,
+     * and that focus change must not switch sections.
      */
     private boolean rebuilding;
+
+    // Wallpaper preview state.
+    private final Map<String, Bitmap> thumbs = new HashMap<>();
+    private int previewGen;
+    /** The wallpaper whose tile has focus. */
+    private String focusedKey;
+    private String previewKey;
+    private Bitmap previewFull;
+    private Bitmap previewSoft;
+    private Runnable pendingPreview;
 
     SettingsDialog(Activity act, Host host) {
         this.act = act;
@@ -122,22 +154,37 @@ final class SettingsDialog {
     void show(int startSection, String arrangePkg) {
         carryOnOpen = arrangePkg;
         if (arrangePkg != null) appsMode = APPS_ORDER;
-        dialog = new Dialog(act, R.style.SettingsDialog);
-        View panel = act.getLayoutInflater().inflate(R.layout.dialog_settings, null, false);
-        dialog.setContentView(panel);
+        dialog = new Dialog(act, R.style.SettingsDialog) {
+            @Override
+            public void onBackPressed() {
+                goBack();
+            }
+        };
+        View root = act.getLayoutInflater().inflate(R.layout.dialog_settings, null, false);
+        dialog.setContentView(root);
         Window w = dialog.getWindow();
-        // Inflated without a parent the layout's own size is lost, so size the window to it.
-        if (w != null) w.setLayout((int) (780 * density), (int) (480 * density));
+        if (w != null) w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
-        rows = panel.findViewById(R.id.rows);
-        sectionTitle = panel.findViewById(R.id.sectionTitle);
-        sectionHint = panel.findViewById(R.id.sectionHint);
-        scroll = panel.findViewById(R.id.scroll);
-        LinearLayout sections = panel.findViewById(R.id.sections);
+        backdrop = root.findViewById(R.id.backdrop);
+        scrim = root.findViewById(R.id.scrim);
+        page = root.findViewById(R.id.page);
+        rows = root.findViewById(R.id.rows);
+        scroll = root.findViewById(R.id.scroll);
+        sectionHint = root.findViewById(R.id.sectionHint);
+        fadeWhenScrolled(root.findViewById(R.id.sectionsScroll), root.findViewById(R.id.sectionsFrame));
+        fadeWhenScrolled(scroll, root.findViewById(R.id.rowsFrame));
 
+        homeBitmap = host.wallpaperBitmap();
+        homeSoft = host.wallpaperFrost().soft;
+        backdrop.setImageBitmap(homeBitmap);
+        frost.copy(host.wallpaperFrost());
+        if (homeBitmap == null) loadHomeWallpaper();   // the home screen is still decoding it (e.g. just recreated)
+
+        LinearLayout sections = root.findViewById(R.id.sections);
         for (int i = 0; i < SECTION_TITLES.length; i++) {
             final int section = i;
-            View row = newRow(sections, R.drawable.sidebar_row_bg);
+            View row = newRow();
+            row.setMinimumHeight((int) (44 * density));   // all eight sections fit without scrolling
             ((ImageView) row.findViewById(R.id.icon)).setImageResource(SECTION_ICONS[i]);
             ((TextView) row.findViewById(R.id.title)).setText(SECTION_TITLES[i]);
             row.setOnFocusChangeListener((v, focused) -> {
@@ -158,21 +205,37 @@ final class SettingsDialog {
         View first = sectionRows.get(0), last = sectionRows.get(sectionRows.size() - 1);
         first.setNextFocusUpId(first.getId());
         last.setNextFocusDownId(last.getId());
+        for (View s : sectionRows) s.setNextFocusLeftId(s.getId());
 
-        dialog.setOnDismissListener(d -> handler.removeCallbacksAndMessages(null));
+        dialog.setOnDismissListener(d -> {
+            handler.removeCallbacksAndMessages(null);
+            generation++;
+            previewGen++;
+        });
         dialog.show();
 
-        // Open like the Inputs dropdown: fade in and settle from a slightly smaller size.
-        panel.setAlpha(0f);
-        panel.setScaleX(0.94f);
-        panel.setScaleY(0.94f);
-        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(Motion.ms(240))
-                .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+        root.setAlpha(0f);
+        root.animate().alpha(1f).setDuration(Motion.ms(220)).start();
 
-        int start = Math.max(0, Math.min(startSection, sectionRows.size() - 1));
+        int start = arrangePkg != null ? SECTION_APPS : Math.max(0, Math.min(startSection, sectionRows.size() - 1));
         select(start);
         if (carried != null) carried.requestFocus();
         else sectionRows.get(start).requestFocus();
+    }
+
+    /**
+     * Fades the list out at its top and bottom edges, like the home grid, wherever there is more of it that
+     * way; and redraws its frosted rows, which show the part of the wallpaper behind where they are now.
+     */
+    private static void fadeWhenScrolled(ScrollView list, FadeFrame frame) {
+        Runnable update = () -> frame.setFades(list.canScrollVertically(-1), list.canScrollVertically(1));
+        list.setOnScrollChangeListener((v, x, y, oldX, oldY) -> {
+            update.run();
+            Frost.invalidateAll(list);
+        });
+        // The content changes with every section: check again once it is laid out.
+        list.getChildAt(0).addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> list.post(update));
+        list.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> list.post(update));
     }
 
     // ---- sections ------------------------------------------------------------------------------
@@ -183,14 +246,28 @@ final class SettingsDialog {
         carried = null;
         for (int i = 0; i < sectionRows.size(); i++) sectionRows.get(i).setActivated(i == section);
         rebuild();
+        rows.setAlpha(0f);
+        rows.setTranslationX(16 * density);
+        rows.animate().alpha(1f).translationX(0f).setDuration(Motion.ms(200))
+                .setInterpolator(new DecelerateInterpolator(1.6f))
+                .withEndAction(() -> Frost.invalidateAll(rows)).start();   // the glass follows the slide
+    }
+
+    /** Back: leaves the options for the sections, then closes the settings. */
+    private void goBack() {
+        View focus = rows.findFocus();
+        if (focus != null) sectionRows.get(current).requestFocus();
+        else dialog.dismiss();
     }
 
     /** Redraws the open section, e.g. after switching the Apps mode. */
     private void rebuild() {
         rebuilding = true;
         generation++;
-        sectionTitle.setText(SECTION_TITLES[current]);
         rows.removeAllViews();
+        strip = null;
+        entry = null;
+        thumbs.clear();
         scroll.scrollTo(0, 0);
         switch (current) {
             case SECTION_GENERAL:
@@ -223,7 +300,7 @@ final class SettingsDialog {
     }
 
     /**
-     * Focusable items line by line: a plain row is a line of one; a gallery row (tagged "grid") is a line
+     * Focusable options line by line: a row is a line of one; the wallpaper strip (tagged "strip") is a line
      * of its tiles.
      */
     private List<List<View>> focusLines() {
@@ -231,8 +308,8 @@ final class SettingsDialog {
         for (int i = 0; i < rows.getChildCount(); i++) {
             View child = rows.getChildAt(i);
             List<View> line = new ArrayList<>();
-            if ("grid".equals(child.getTag(R.id.rows)) && child instanceof ViewGroup) {
-                ViewGroup g = (ViewGroup) child;
+            if ("strip".equals(child.getTag(R.id.rows))) {
+                ViewGroup g = (ViewGroup) ((ViewGroup) child).getChildAt(0);
                 for (int j = 0; j < g.getChildCount(); j++) if (g.getChildAt(j).isFocusable()) line.add(g.getChildAt(j));
             } else if (child.isFocusable()) {
                 line.add(child);
@@ -242,19 +319,21 @@ final class SettingsDialog {
         return lines;
     }
 
+    /** Where focus goes when entering the options. */
     private View firstItem() {
+        if (entry != null) return entry;
         List<List<View>> lines = focusLines();
         return lines.isEmpty() ? null : lines.get(0).get(0);
     }
 
     /**
-     * Right from the sidebar enters the section; Left from the first item of a line returns to its sidebar
-     * entry; the section's top and bottom edges hold focus.
+     * Right from the sections enters the options; Left from the first item of a line returns to its section;
+     * the options' top and bottom edges hold focus.
      */
     private void wireFocus() {
         List<List<View>> lines = focusLines();
         if (lines.isEmpty()) return;
-        View first = lines.get(0).get(0);
+        View first = firstItem();
         for (View s : sectionRows) s.setNextFocusRightId(first.getId());
         int back = sectionRows.get(current).getId();
         for (int l = 0; l < lines.size(); l++) {
@@ -489,7 +568,6 @@ final class SettingsDialog {
 
     private void pickUp(View row) {
         carried = row;
-        row.setBackgroundResource(R.drawable.sidebar_row_bg);
         row.setActivated(true);
         TextView badge = row.findViewById(R.id.badge);
         badge.setText("↕");
@@ -503,7 +581,6 @@ final class SettingsDialog {
         View row = carried;
         carried = null;
         row.setActivated(false);
-        row.setBackgroundResource(R.drawable.input_row_bg);
         row.findViewById(R.id.badge).setVisibility(View.GONE);
         row.animate().scaleX(1f).scaleY(1f).setDuration(Motion.ms(160)).start();
         sectionHint.setText(R.string.apps_arrange_hint);
@@ -541,7 +618,7 @@ final class SettingsDialog {
         host.onAppsChanged();
     }
 
-    // ---- wallpaper: gallery, dimming, rotation -----------------------------------------------------
+    // ---- wallpaper: the one in use, rotation -----------------------------------------------------
 
     private void buildWallpaper() {
         List<String> files = Wallpapers.list(act);
@@ -549,67 +626,44 @@ final class SettingsDialog {
                 ? act.getString(R.string.wallpaper_hint) + " " + act.getString(R.string.wallpaper_empty)
                 : act.getString(R.string.wallpaper_hint));
 
-        final List<String> keys = new ArrayList<>();
-        keys.add("");
-        keys.addAll(files);
-        final List<View> tiles = new ArrayList<>();
-        LinearLayout line = null;
-        for (int i = 0; i < keys.size(); i++) {
-            if (i % GALLERY_COLUMNS == 0) {
-                line = new LinearLayout(act);
-                line.setOrientation(LinearLayout.HORIZONTAL);
-                line.setTag(R.id.rows, "grid");
-                line.setPadding((int) (6 * density), (int) (4 * density), (int) (6 * density), (int) (4 * density));
-                // The focused tile grows 5%: let it spill into the padding instead of cutting its ring off.
-                line.setClipToPadding(false);
-                line.setClipChildren(false);
-                rows.addView(line);
-            }
-            final String key = keys.get(i);
-            View tile = act.getLayoutInflater().inflate(R.layout.item_wallpaper, line, false);
+        // The wallpapers in a strip: moving along it previews each one behind the settings, OK keeps it.
+        final String chosen = Prefs.wallpaper(act);
+        HorizontalScrollView scroller = new HorizontalScrollView(act);
+        scroller.setHorizontalScrollBarEnabled(false);
+        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        // The sides fade out progressively while there are more wallpapers that way, and scrolling keeps the
+        // focused tile clear of that fade.
+        scroller.setHorizontalFadingEdgeEnabled(true);
+        scroller.setFadingEdgeLength((int) (64 * density));
+        scroller.setClipChildren(false);
+        scroller.setTag(R.id.rows, "strip");
+        strip = new LinearLayout(act);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        strip.setClipChildren(false);
+        // Room inside the strip for the focused tile to grow without its ring being cut. It is the strip's
+        // padding, not the scroller's, so the side fades reach the very edge.
+        strip.setPadding((int) (8 * density), (int) (10 * density), (int) (8 * density), (int) (12 * density));
+        strip.setClipToPadding(false);
+        scroller.addView(strip);
+        for (final String key : files) {
+            View tile = act.getLayoutInflater().inflate(R.layout.item_wallpaper, strip, false);
             tile.setId(View.generateViewId());
             ImageView image = tile.findViewById(R.id.image);
             roundCorners(image, 10);
-            if (key.isEmpty()) {
-                tile.findViewById(R.id.noneLabel).setVisibility(View.VISIBLE);
-            } else {
-                loadThumbnail(image, key);
-            }
-            tile.findViewById(R.id.selected).setVisibility(key.equals(Prefs.wallpaper(act)) ? View.VISIBLE : View.GONE);
-            tile.setOnFocusChangeListener((v, focused) -> v.animate()
-                    .scaleX(focused ? 1.05f : 1f).scaleY(focused ? 1.05f : 1f)
-                    .setDuration(Motion.ms(180)).start());
-            tile.setOnClickListener(v -> {
-                Prefs.setWallpaper(act, key);
-                for (int j = 0; j < tiles.size(); j++) {
-                    tiles.get(j).findViewById(R.id.selected).setVisibility(keys.get(j).equals(key) ? View.VISIBLE : View.GONE);
-                }
-                host.onWallpaperChanged();
+            loadThumbnail(image, key);
+            tile.findViewById(R.id.selected).setVisibility(key.equals(chosen) ? View.VISIBLE : View.GONE);
+            tile.setTag(key);
+            tile.setOnFocusChangeListener((v, focused) -> {
+                v.animate().scaleX(focused ? 1.07f : 1f).scaleY(focused ? 1.07f : 1f)
+                        .setDuration(Motion.ms(180)).start();
+                if (focused) preview(key);
+                else handler.post(this::restoreIfLeftStrip);
             });
-            tiles.add(tile);
-            line.addView(tile);
+            tile.setOnClickListener(v -> choose(key));
+            strip.addView(tile);
+            if (key.equals(chosen)) entry = tile;
         }
-        // Keep the last row's tiles the same width as the others.
-        if (line != null) {
-            for (int i = line.getChildCount(); i < GALLERY_COLUMNS; i++) {
-                View spacer = new View(act);
-                spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
-                line.addView(spacer);
-            }
-        }
-
-        addHeader(act.getString(R.string.dim_header));
-        final List<View> dimRows = new ArrayList<>();
-        for (int d : Prefs.DIM_CHOICES) {
-            String title = d == 0 ? act.getString(R.string.dim_none) : act.getString(R.string.dim_option, d);
-            View row = addOption(title, d == Prefs.wallpaperDim(act));
-            dimRows.add(row);
-            row.setOnClickListener(v -> {
-                Prefs.setWallpaperDim(act, d);
-                for (int j = 0; j < dimRows.size(); j++) setChecked(dimRows.get(j), Prefs.DIM_CHOICES[j] == d);
-                host.onDimChanged();
-            });
-        }
+        rows.addView(scroller);
 
         addHeader(act.getString(R.string.rotation_header));
         final String[] rotations = {Prefs.ROTATE_NEVER, Prefs.ROTATE_ON_POWER, Prefs.ROTATE_HOURLY, Prefs.ROTATE_DAILY};
@@ -711,6 +765,7 @@ final class SettingsDialog {
     private void buildPerformance() {
         sectionHint.setText(R.string.performance_hint);
         View memory = act.getLayoutInflater().inflate(R.layout.item_memory, rows, false);
+        Frost.apply(memory, frost, 14 * density, ROW_TINT);
         memory.setId(View.generateViewId());
         rows.addView(memory);
         Runnable refresh = () -> showMemory(memory);
@@ -738,18 +793,19 @@ final class SettingsDialog {
         });
 
         addHeader(act.getString(R.string.launcher_header));
-        View anim = addOption(act.getString(R.string.launcher_animations), Prefs.animations(act));
+        View anim = addToggle(act.getString(R.string.launcher_animations), Prefs.animations(act));
         anim.setOnClickListener(v -> {
             boolean on = !Prefs.animations(act);
             Prefs.setAnimations(act, on);
-            setChecked(anim, on);
+            setToggle(anim, on);
             host.onAnimationsChanged();
         });
-        View blur = addOption(act.getString(R.string.blur_effects), Prefs.blur(act));
+        View blur = addToggle(act.getString(R.string.blur_effects), Prefs.blur(act));
         blur.setOnClickListener(v -> {
             boolean on = !Prefs.blur(act);
             Prefs.setBlur(act, on);
-            setChecked(blur, on);
+            setToggle(blur, on);
+            refreshGlass();
             host.onBlurChanged();
         });
 
@@ -792,18 +848,135 @@ final class SettingsDialog {
         });
     }
 
+    /** Decodes the wallpaper in use for the backdrop when the home screen has not shown it yet. */
+    private void loadHomeWallpaper() {
+        final String key = Prefs.wallpaper(act);
+        if (key.isEmpty()) return;
+        final int w = act.getResources().getDisplayMetrics().widthPixels;
+        final int h = act.getResources().getDisplayMetrics().heightPixels;
+        new Thread(() -> {
+            Bitmap full = Wallpapers.load(act, key, w, h);
+            Bitmap soft = softOf(full);
+            handler.post(() -> {
+                if (full == null || homeBitmap != null || !key.equals(Prefs.wallpaper(act))) return;
+                homeBitmap = full;
+                homeSoft = soft;
+                if (focusedKey == null) setBackdrop(full, soft);
+            });
+        }, "wallpaper-home").start();
+    }
+
+    /** Puts a picture behind the settings, and its blurred copy behind the frosted rows. */
+    private void setBackdrop(Bitmap picture, Bitmap soft) {
+        backdrop.setImageBitmap(picture);
+        frost.set(soft, picture == null ? 0 : picture.getWidth(), picture == null ? 0 : picture.getHeight());
+        Frost.invalidateAll(page);
+    }
+
+    /** The blurred copy for the frosted rows, only when blur is on. */
+    private Bitmap softOf(Bitmap picture) {
+        return Prefs.blur(act) ? Frost.soften(picture) : null;
+    }
+
+    // ---- wallpaper preview -----------------------------------------------------------------------
+
+    /**
+     * Shows a wallpaper behind the settings: its thumbnail at once, then the full picture once focus rests on
+     * it, so moving quickly along the strip never waits for a decode.
+     */
+    private void preview(String key) {
+        focusedKey = key;
+        final int gen = ++previewGen;
+        if (pendingPreview != null) handler.removeCallbacks(pendingPreview);
+        if (key.equals(previewKey) && previewFull != null) {
+            setBackdrop(previewFull, previewSoft);
+            return;
+        }
+        Bitmap thumb = thumbs.get(key);
+        setBackdrop(thumb, softOf(thumb));
+        final int w = act.getResources().getDisplayMetrics().widthPixels;
+        final int h = act.getResources().getDisplayMetrics().heightPixels;
+        pendingPreview = () -> new Thread(() -> {
+            Bitmap full = Wallpapers.load(act, key, w, h);
+            Bitmap soft = softOf(full);
+            handler.post(() -> {
+                if (gen != previewGen || full == null) return;
+                previewKey = key;
+                previewFull = full;
+                previewSoft = soft;
+                setBackdrop(full, soft);
+            });
+        }, "wallpaper-preview").start();
+        handler.postDelayed(pendingPreview, PREVIEW_DELAY_MS);
+    }
+
+    /** Focus left the strip without OK: the wallpaper in use comes back. */
+    private void restoreIfLeftStrip() {
+        if (strip != null && strip.findFocus() != null) return;
+        if (focusedKey == null) return;
+        previewGen++;
+        if (pendingPreview != null) handler.removeCallbacks(pendingPreview);
+        focusedKey = null;
+        previewKey = null;
+        previewFull = null;
+        previewSoft = null;
+        setBackdrop(homeBitmap, homeSoft);
+    }
+
+    private void choose(String key) {
+        Prefs.setWallpaper(act, key);
+        host.onWallpaperChanged();
+        for (int i = 0; strip != null && i < strip.getChildCount(); i++) {
+            View tile = strip.getChildAt(i);
+            tile.findViewById(R.id.selected).setVisibility(key.equals(tile.getTag()) ? View.VISIBLE : View.GONE);
+        }
+        if (key.equals(previewKey) && previewFull != null) {
+            homeBitmap = previewFull;
+            homeSoft = previewSoft;
+        } else {
+            // Chosen before the full picture came in: keep the thumbnail for now and swap in the full one.
+            homeBitmap = thumbs.get(key);
+            homeSoft = softOf(homeBitmap);
+            final int w = act.getResources().getDisplayMetrics().widthPixels;
+            final int h = act.getResources().getDisplayMetrics().heightPixels;
+            new Thread(() -> {
+                Bitmap full = Wallpapers.load(act, key, w, h);
+                Bitmap soft = softOf(full);
+                handler.post(() -> {
+                    if (full == null || !key.equals(Prefs.wallpaper(act))) return;
+                    homeBitmap = full;
+                    homeSoft = soft;
+                    if (focusedKey == null || key.equals(focusedKey)) setBackdrop(full, soft);
+                });
+            }, "wallpaper-chosen").start();
+        }
+    }
+
+    /** Blur was switched: the rows trade their frosted and solid backgrounds. */
+    private void refreshGlass() {
+        List<View> all = new ArrayList<>(sectionRows);
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            View v = rows.getChildAt(i);
+            if (v.isFocusable()) all.add(v);
+        }
+        for (View v : all) {
+            v.setBackgroundResource(R.drawable.settings_row_bg);
+            Frost.apply(v, frost, 14 * density, ROW_TINT);
+        }
+    }
+
     // ---- rows ------------------------------------------------------------------------------------
 
-    private View newRow(ViewGroup parent, int background) {
-        View row = act.getLayoutInflater().inflate(R.layout.item_setting, parent, false);
-        row.setBackgroundResource(background);
+    private View newRow() {
+        View row = act.getLayoutInflater().inflate(R.layout.item_setting, rows, false);
         row.setId(View.generateViewId());
+        Frost.apply(row, frost, 14 * density, ROW_TINT);
         return row;
     }
 
     /** A choice row with a check mark when selected; no leading icon. */
     private View addOption(String title, boolean checked) {
-        View row = newRow(rows, R.drawable.input_row_bg);
+        View row = newRow();
         row.findViewById(R.id.icon).setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         setChecked(row, checked);
@@ -813,20 +986,31 @@ final class SettingsDialog {
 
     /** A row that does something, with a leading icon. */
     private View addAction(int icon, String title) {
-        View row = newRow(rows, R.drawable.input_row_bg);
+        View row = newRow();
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(icon);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         rows.addView(row);
         return row;
     }
 
+    /** An on/off row with a switch at the end. */
+    private View addToggle(String title, boolean on) {
+        View row = newRow();
+        row.findViewById(R.id.icon).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.findViewById(R.id.toggle).setVisibility(View.VISIBLE);
+        setToggle(row, on);
+        rows.addView(row);
+        return row;
+    }
+
     /** An app row: its icon and name. */
     private View appRow(AppAdapter.Entry e) {
-        View row = newRow(rows, R.drawable.input_row_bg);
+        View row = newRow();
         ImageView icon = row.findViewById(R.id.icon);
         icon.setImageTintList(null);
         icon.setImageDrawable(e.icon);
-        sizeIcon(icon, 28, 28);
+        sizeIcon(icon, 30, 30);
         ((TextView) row.findViewById(R.id.title)).setText(e.label);
         rows.addView(row);
         return row;
@@ -836,12 +1020,10 @@ final class SettingsDialog {
     private TextView addHeader(String text) {
         TextView h = new TextView(act);
         h.setText(text);
-        h.setAllCaps(true);
-        h.setLetterSpacing(0.14f);
-        h.setTextSize(11f);
-        h.setTextColor(0x8CFFFFFF);
+        h.setTextSize(15f);
+        h.setTextColor(0x99FFFFFF);
         h.setTypeface(act.getResources().getFont(R.font.outfit));
-        h.setPadding((int) (12 * density), (int) (14 * density), (int) (12 * density), (int) (6 * density));
+        h.setPadding((int) (6 * density), (int) (16 * density), (int) (6 * density), (int) (8 * density));
         h.setFocusable(false);
         rows.addView(h);
         return h;
@@ -849,6 +1031,10 @@ final class SettingsDialog {
 
     private static void setChecked(View row, boolean checked) {
         row.findViewById(R.id.check).setVisibility(checked ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    private static void setToggle(View row, boolean on) {
+        row.findViewById(R.id.toggle).setActivated(on);
     }
 
     private void sizeIcon(ImageView icon, int wDp, int hDp) {
@@ -870,13 +1056,17 @@ final class SettingsDialog {
         v.setClipToOutline(true);
     }
 
-    /** Decodes a wallpaper preview off the main thread. */
+    /** Decodes a wallpaper thumbnail off the main thread; it is also the first preview behind the settings. */
     private void loadThumbnail(ImageView target, String file) {
         final int gen = generation;
         new Thread(() -> {
-            Bitmap bmp = Wallpapers.thumbnail(act, file, 320, 180);
+            Bitmap bmp = Wallpapers.thumbnail(act, file, 480, 270);
             handler.post(() -> {
-                if (gen == generation && bmp != null) target.setImageBitmap(bmp);
+                if (bmp == null || gen != generation) return;
+                thumbs.put(file, bmp);
+                target.setImageBitmap(bmp);
+                // The focused wallpaper's preview was still empty: show its thumbnail now.
+                if (file.equals(focusedKey) && backdrop.getDrawable() == null) backdrop.setImageBitmap(bmp);
             });
         }, "wallpaper-thumb").start();
     }

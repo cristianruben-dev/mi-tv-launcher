@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon of a Control Center switch: blue on the white focused circle when on, dark when off. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:state_activated="true" android:color="#FF0A84FF" />
+    <item android:state_focused="true" android:color="#FF111111" />
+    <item android:color="#FFFFFFFF" />
+</selector>

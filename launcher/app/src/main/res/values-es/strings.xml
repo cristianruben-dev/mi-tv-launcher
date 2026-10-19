@@ -54,9 +54,6 @@
     <string name="dock_replaced">%1$s ocupó el lugar de %2$s en el dock</string>
     <string name="columns_header">Columnas</string>
     <string name="columns_option">%1$d por fila</string>
-    <string name="dim_header">Atenuar fondo</string>
-    <string name="dim_none">Sin atenuar</string>
-    <string name="dim_option">%1$d %%</string>
     <string name="screensaver_hint">Se activa cuando la TV lleva un rato sin usarse: el reloj moviéndose sobre tu fondo.</string>
     <string name="screensaver_header">Empezar después de</string>
     <string name="screensaver_off">Desactivado</string>
@@ -99,7 +96,6 @@
     <string name="apps_mode_dock">Dock</string>
     <string name="dock_hint_short">Elige las apps del dock en el orden que las quieras, una por columna.</string>
     <string name="dock_count">En el dock: %1$d de %2$d</string>
-    <string name="wallpaper_none_short">Sin fondo</string>
     <string name="rotation_header">Cambiar automáticamente</string>
     <string name="rotation_never">Nunca</string>
     <string name="rotation_power_on">Cada vez que se enciende la TV</string>
@@ -113,4 +109,13 @@
     <string name="sleep_indicator">Se apaga %1$s</string>
     <string name="hours_option">%1$d horas</string>
     <string name="hour_minutes_option">%1$d h %2$d min</string>
+    <string name="control_center">Centro de control</string>
+    <string name="cc_turn_off">Apagar</string>
+    <string name="cc_turn_off_hint">Pasar a reposo ahora</string>
+    <string name="cc_minutes">%1$d min</string>
+    <string name="cc_free">%1$s libres</string>
+    <string name="cc_bluetooth">Bluetooth</string>
+    <string name="cc_mute">Silencio</string>
+    <string name="cc_screensaver">Protector</string>
+    <string name="cc_cant_switch">La TV no lo permitió</string>
 </resources>

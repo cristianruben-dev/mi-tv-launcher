@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <!-- Optional wallpaper chosen in settings (assets/wallpapers); hidden for the plain black look. -->
+    <!-- The wallpaper chosen in settings (assets/wallpapers). -->
     <ImageView
         android:id="@+id/wallpaper"
         android:layout_width="match_parent"
@@ -13,22 +13,6 @@
         android:scaleType="centerCrop"
         android:visibility="gone"
         android:importantForAccessibility="no" />
-
-    <!-- Darkens the wallpaper by the amount chosen in Settings → Personalisation. -->
-    <View
-        android:id="@+id/wallpaperDim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#FF000000"
-        android:alpha="0"
-        android:visibility="gone" />
-
-    <!-- Ambient glow in the colour of the focused app. -->
-    <View
-        android:id="@+id/ambient"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0" />
 
     <!-- Soft gradient behind the top bar so a wallpaper darkens into it without a hard edge. -->
     <View
@@ -205,11 +189,36 @@
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
 
-                <TextView
+                <!-- Control Center: quick actions, like tvOS. -->
+                <ImageView
+                    android:id="@+id/btnControl"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="10dp"
+                    android:padding="10dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_control_center"
+                    android:tint="@drawable/pill_text"
+                    android:background="@drawable/pill_bg"
+                    android:contentDescription="@string/control_center"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusDown="@+id/grid" />
+
+                <!-- Settings: just the icon, in a round pill. -->
+                <ImageView
                     android:id="@+id/btnSettings"
-                    style="@style/TopButton"
-                    android:text="@string/settings"
-                    android:drawableStart="@drawable/ic_settings"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="10dp"
+                    android:padding="10dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@drawable/pill_text"
+                    android:background="@drawable/pill_bg"
+                    android:contentDescription="@string/settings"
+                    android:focusable="true"
+                    android:clickable="true"
                     android:nextFocusDown="@+id/grid" />
             </LinearLayout>
         </RelativeLayout>

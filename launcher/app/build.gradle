@@ -16,7 +16,8 @@ android {
         applicationId 'com.gathin.tvhome'
         // Android 9: the variable Outfit font weights (fontVariationSettings) need API 28.
         minSdk 28
-        targetSdk 29
+        // 28, not higher: from 29 Android no longer lets apps switch Wi-Fi on and off (Control Center).
+        targetSdk 28
         versionCode 3
         versionName '3.0'
     }

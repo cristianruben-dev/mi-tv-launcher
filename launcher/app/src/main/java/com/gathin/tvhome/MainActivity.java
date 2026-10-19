@@ -8,8 +8,9 @@ import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -59,7 +60,8 @@ import java.util.Set;
 /**
  * tvOS style home: a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
-public class MainActivity extends Activity implements AppAdapter.TileListener, SettingsDialog.Host, AppMenu.Host {
+public class MainActivity extends Activity implements AppAdapter.TileListener, SettingsDialog.Host, AppMenu.Host,
+        ControlCenter.Host {
 
     private static final long MINUTE_MS = 60_000L;
     /** The menu backdrop is blurred from a copy this many times smaller than the screen. */
@@ -71,17 +73,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private RecyclerView grid;
     private FrameLayout root;
     private GlassView glass;
-    private View ambient;
+    /** The blurred wallpaper, for the frosted pills, dropdowns and settings. */
+    private final Frost.Source wallpaperFrost = new Frost.Source();
+    /** The blurred home screen behind a menu, for the menu's own glass. */
+    private final Frost.Source menuFrost = new Frost.Source();
     private TextView heroName;
-    private GradientDrawable ambientGlow;
-    private int ambientColor;
-    private boolean ambientShown;
     private boolean heroShown;
     private TextView greeting;
     private TextView sleepInfo;
     private TextView btnWifi;
     private ImageView wallpaper;
-    private View wallpaperDim;
     private View topScrim;
     private ImageView backdrop;
     private ImageView backdropTile;
@@ -139,20 +140,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
-        ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
-        ambientGlow = new GradientDrawable();
-        ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        ambientGlow.setGradientCenter(0.32f, 0.42f);
-        ambient.setBackground(ambientGlow);
-        ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
-                ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         sleepInfo = findViewById(R.id.sleepInfo);
         applyTimeFormat();
         btnWifi = findViewById(R.id.btnWifi);
         wallpaper = findViewById(R.id.wallpaper);
-        wallpaperDim = findViewById(R.id.wallpaperDim);
         topScrim = findViewById(R.id.topScrim);
         backdrop = findViewById(R.id.backdrop);
         backdropTile = findViewById(R.id.backdropTile);
@@ -168,7 +161,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         grid.addItemDecoration(dock);
         applyBlur();
         applyWallpaper();
-        applyDim();
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         grid.setAdapter(adapter);
@@ -212,9 +204,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         }
 
         View btnInputs = findViewById(R.id.btnInputs);
+        View btnControl = findViewById(R.id.btnControl);
         View btnSettings = findViewById(R.id.btnSettings);
         animatePill(btnInputs, this::showInputs);
         animatePill(btnWifi, this::showWifi);
+        animatePill(btnControl, () -> new ControlCenter(this, this).show(btnControl));
         animatePill(btnSettings, () -> showSettings(SettingsDialog.SECTION_GENERAL));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
@@ -227,6 +221,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
+        btnControl.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
 
         // Hide the glass when focus leaves the tiles.
@@ -246,8 +241,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         glass.setAlpha(0f);
         heroShown = false;
         heroName.setAlpha(0f);
-        ambientShown = false;
-        ambient.setAlpha(0f);
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
@@ -336,9 +329,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             }
             showHero(position, r.top - dy);
         } else {
-            // Grid apps get the ambient glow in their colour too; only the dock shows the big name.
+            // Only the dock shows the big name.
             hideHero();
-            showAmbient(adapter.ambientColorAt(position));
             // Scroll just enough so the whole glass (not only the tile) is visible.
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, !Motion.enabled);
@@ -357,7 +349,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
-        int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
@@ -377,52 +368,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         } else {
             heroName.setY(y);
         }
-        showAmbient(color);
     }
 
-    /**
-     * Fades the ambient glow in, or over to a new colour, for whichever tile has focus. Not over a
-     * wallpaper: there the picture is the background, and a coloured haze on it looks muddy.
-     */
-    private void showAmbient(int color) {
-        if (hasWallpaper()) {
-            hideAmbient();
-            return;
-        }
-        if (!ambientShown) {
-            setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(Motion.ms(600)).withEndAction(null).start();
-            ambientShown = true;
-        } else if (color != ambientColor) {
-            ambientColor = color;   // a quick second move retargets instead of queueing another fade
-            if (!Motion.enabled) {
-                setAmbient(color);
-                return;
-            }
-            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                setAmbient(ambientColor);
-                ambient.animate().alpha(1f).setDuration(500).withEndAction(null).start();
-            }).start();
-        }
-    }
-
-    private void hideAmbient() {
-        if (!ambientShown) return;
-        ambientShown = false;
-        ambient.animate().alpha(0f).setDuration(Motion.ms(300)).withEndAction(null).start();
-    }
-
-    private boolean hasWallpaper() {
-        return loadedWallpaper != null && !loadedWallpaper.isEmpty();
-    }
-
-    private void setAmbient(int color) {
-        ambientColor = color;
-        int c = color & 0x00FFFFFF;
-        ambientGlow.setColors(new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c});
-    }
-
-    /** Hides the dock's big app name; the ambient glow stays and follows the focused tile. */
+    /** Hides the dock's big app name. */
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
@@ -564,6 +512,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         if (!Prefs.blur(this)) return;
         Bitmap shot = Blur.snapshot(root, BACKDROP_DOWNSCALE);
         if (shot == null) return;
+        menuFrost.set(shot, root.getWidth(), root.getHeight());
         backdrop.setImageBitmap(shot);
         backdrop.setVisibility(View.VISIBLE);
         backdrop.setAlpha(0f);
@@ -679,7 +628,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         final float focusScale = 1.09f;
         pill.setOnFocusChangeListener((v, focused) -> v.animate()
                 .scaleX(focused ? focusScale : 1f).scaleY(focused ? focusScale : 1f)
-                .translationY(focused ? -2f * density : 0f)
                 .setDuration(Motion.ms(focused ? 340 : 220))
                 .setInterpolator(focused ? new OvershootInterpolator(2.4f) : new DecelerateInterpolator())
                 .start());
@@ -757,11 +705,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
-    public void onDimChanged() {
-        applyDim();
-    }
-
-    @Override
     public void onWallpaperChanged() {
         applyWallpaper();
     }
@@ -783,6 +726,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
+    public Bitmap wallpaperBitmap() {
+        Drawable d = wallpaper.getVisibility() == View.VISIBLE ? wallpaper.getDrawable() : null;
+        return d instanceof BitmapDrawable ? ((BitmapDrawable) d).getBitmap() : null;
+    }
+
+    @Override
     public void openTvSettings() {
         open(new Intent(Settings.ACTION_SETTINGS));
     }
@@ -795,13 +744,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private void applyBlur() {
         dock.setBlur(Prefs.blur(this));
         grid.invalidate();
+        // The top bar's pills: frosted like the dock with blur on, the solid pill otherwise.
+        for (int id : new int[]{R.id.btnInputs, R.id.btnWifi, R.id.btnControl, R.id.btnSettings}) {
+            View pill = findViewById(id);
+            pill.setBackgroundResource(R.drawable.pill_bg);
+            Frost.apply(pill, wallpaperFrost, 21 * density, 0x33000000);
+        }
     }
 
-    private void applyDim() {
-        wallpaperDim.setAlpha(Prefs.wallpaperDim(this) / 100f);
+    @Override
+    public Frost.Source wallpaperFrost() {
+        return wallpaperFrost;
     }
 
-    /** Shows the chosen wallpaper (decoded off the main thread), or the plain black background for none. */
+    @Override
+    public Frost.Source menuFrost() {
+        return menuFrost;
+    }
+
+    /** Shows the chosen wallpaper (decoded off the main thread), or plain black when none is bundled. */
     private void applyWallpaper() {
         final String name = Prefs.wallpaper(this);
         if (name.equals(loadedWallpaper)) return;
@@ -832,14 +793,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         boolean on = full != null;
         wallpaper.setImageBitmap(full);
         wallpaper.setVisibility(on ? View.VISIBLE : View.GONE);
-        wallpaperDim.setVisibility(on ? View.VISIBLE : View.GONE);
         topScrim.setVisibility(on ? View.VISIBLE : View.GONE);
         if (on) {
             wallpaper.setAlpha(0f);
             wallpaper.animate().alpha(1f).setDuration(Motion.ms(350)).start();
-            hideAmbient();
         }
         dock.setBlurSource(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
+        wallpaperFrost.set(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
+        Frost.invalidateAll(findViewById(R.id.topButtons));
         grid.invalidate();
     }
 
@@ -968,6 +929,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         popup.setOutsideTouchable(true);
         popup.setAnimationStyle(0);
         popup.setElevation(0f);
+        Frost.apply(panel, wallpaperFrost, 20 * density, 0x40000000);
         return popup;
     }
 
@@ -984,7 +946,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         panel.setTranslationY(-8 * density);
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(Motion.ms(220))
-                .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+                .setInterpolator(new DecelerateInterpolator(1.6f))
+                .withEndAction(panel::invalidate).start();   // the glass follows where the panel settled
         LinearLayout rows = panel.findViewById(R.id.rows);
         for (int i = 0; i < rows.getChildCount(); i++) {
             if (rows.getChildAt(i).isFocusable()) {

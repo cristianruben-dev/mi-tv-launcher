@@ -18,7 +18,6 @@ final class Prefs {
     static final String LANG_SYSTEM = "";
     /** Grid columns offered in settings; the dock has one slot per column. */
     static final int[] COLUMN_CHOICES = {3, 4, 5, 6};
-    static final int[] DIM_CHOICES = {0, 20, 40, 60};
 
     private static final String FILE = "tvhome";
     private static final String KEY_LANG = "lang";
@@ -26,7 +25,6 @@ final class Prefs {
     private static final String KEY_HIDDEN = "hidden_apps";
     private static final String KEY_ORDER = "app_order";
     private static final String KEY_COLUMNS = "columns";
-    private static final String KEY_DIM = "wallpaper_dim";
     private static final String KEY_WALLPAPER = "wallpaper";
     private static final String KEY_BLUR = "blur";
     private static final String KEY_ANIMATIONS = "animations";
@@ -146,18 +144,15 @@ final class Prefs {
         sp(ctx).edit().putInt(KEY_COLUMNS, columns).apply();
     }
 
-    /** How much to darken the wallpaper, 0–100. */
-    static int wallpaperDim(Context ctx) {
-        return sp(ctx).getInt(KEY_DIM, 0);
-    }
-
-    static void setWallpaperDim(Context ctx, int percent) {
-        sp(ctx).edit().putInt(KEY_DIM, percent).apply();
-    }
-
-    /** File name in assets/wallpapers, or "" for none (the black background with the ambient glow). */
+    /**
+     * File name in assets/wallpapers. Always one of them: a choice that is missing (or the old "none") falls
+     * back to the first. "" only when no wallpaper is bundled.
+     */
     static String wallpaper(Context ctx) {
-        return sp(ctx).getString(KEY_WALLPAPER, "");
+        String chosen = sp(ctx).getString(KEY_WALLPAPER, "");
+        List<String> all = Wallpapers.list(ctx);
+        if (all.contains(chosen)) return chosen;
+        return all.isEmpty() ? "" : all.get(0);
     }
 
     static void setWallpaper(Context ctx, String name) {
