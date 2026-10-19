@@ -8,7 +8,7 @@ Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). E
 (en inglés, con el método completo de debloat para otras marcas) está en
 [`docs/README-original.md`](docs/README-original.md).
 
-![Inicio con fondo de pantalla y 6 columnas](docs/screenshots/inicio-fondo-6-columnas.png)
+![Pantalla de inicio con fondo de pantalla y 6 columnas](docs/screenshots/01-inicio.jpg)
 
 ---
 
@@ -27,31 +27,42 @@ Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). E
 
 ## Capturas
 
-Capturas tomadas en la TV con `adb shell screencap`.
+Todas las pantallas del launcher, tomadas en la TV con `adb shell screencap`.
 
-| Inicio con fondo y 6 columnas | Menú al mantener pulsada una app |
-|---|---|
-| ![Inicio con fondo de pantalla](docs/screenshots/inicio-fondo-6-columnas.png) | ![Menú desplegable junto a la app](docs/screenshots/menu-app.png) |
-
-| Ajustes: general | Ajustes: pantalla de inicio |
-|---|---|
-| ![Idioma y entrada al encender](docs/screenshots/ajustes-general.png) | ![Columnas y formato de hora](docs/screenshots/ajustes-pantalla-inicio.png) |
-
-| Ajustes: apps (dock) | Ajustes: ordenar apps |
-|---|---|
-| ![Apps del dock](docs/screenshots/ajustes-apps-dock.png) | ![Moviendo una app en la cuadrícula](docs/screenshots/ajustes-ordenar.png) |
-
-| Ajustes: fondo de pantalla | Ajustes: apagado automático |
-|---|---|
-| ![Galería de fondos](docs/screenshots/ajustes-fondo.png) | ![Temporizador de apagado](docs/screenshots/ajustes-apagado.png) |
-
-| Ajustes: protector de pantalla | Protector de pantalla |
-|---|---|
-| ![Tiempo de espera y Probar ahora](docs/screenshots/ajustes-protector.png) | ![Reloj sobre el fondo de pantalla](docs/screenshots/protector.png) |
-
-| Ajustes: rendimiento | Inicio con el temporizador en marcha |
-|---|---|
-| ![Memoria, animaciones y blur](docs/screenshots/ajustes-rendimiento.png) | ![Aviso de apagado junto a la hora](docs/screenshots/inicio-temporizador.png) |
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/01-inicio.jpg" alt="Inicio"><br><b>Inicio</b><br><sub>Dock de 6 columnas sobre el fondo, con el nombre de la app enfocada.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/02-cuadricula.jpg" alt="Cuadrícula"><br><b>Cuadrícula</b><br><sub>Al bajar, las apps se desvanecen bajo la barra superior.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/03-menu-app.jpg" alt="Menú de una app"><br><b>Menú de una app</b><br><sub>Desplegable junto a la app; el resto se desenfoca.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/04-entradas.jpg" alt="Entradas"><br><b>Entradas</b><br><sub>HDMI, AV y TV en vivo.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/05-ajustes-general.jpg" alt="Ajustes · General"><br><b>Ajustes · General</b><br><sub>Idioma y entrada al encender.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/06-ajustes-pantalla-inicio.jpg" alt="Ajustes · Pantalla de inicio"><br><b>Ajustes · Pantalla de inicio</b><br><sub>Columnas y formato de hora.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/07-ajustes-apps-dock.jpg" alt="Ajustes · Apps · Dock"><br><b>Ajustes · Apps · Dock</b><br><sub>Apps del dock y su orden.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/08-ajustes-apps-mostrar.jpg" alt="Ajustes · Apps · Mostrar u ocultar"><br><b>Ajustes · Apps · Mostrar u ocultar</b><br><sub>Desmarca una app para ocultarla.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/09-ajustes-apps-ordenar.jpg" alt="Ajustes · Apps · Ordenar"><br><b>Ajustes · Apps · Ordenar</b><br><sub>Toma una app con OK y muévela.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/10-ajustes-fondo.jpg" alt="Ajustes · Fondo de pantalla"><br><b>Ajustes · Fondo de pantalla</b><br><sub>Galería de fondos.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/11-ajustes-fondo-opciones.jpg" alt="Ajustes · Fondo · Opciones"><br><b>Ajustes · Fondo · Opciones</b><br><sub>Atenuar y cambio automático.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/12-ajustes-protector.jpg" alt="Ajustes · Protector de pantalla"><br><b>Ajustes · Protector de pantalla</b><br><sub>Tiempo de espera y Probar ahora.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/13-ajustes-apagado.jpg" alt="Ajustes · Apagado automático"><br><b>Ajustes · Apagado automático</b><br><sub>Apaga la TV pasado un tiempo.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/14-ajustes-rendimiento.jpg" alt="Ajustes · Rendimiento"><br><b>Ajustes · Rendimiento</b><br><sub>Memoria, animaciones y blur.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/15-ajustes-tv.jpg" alt="Ajustes · Ajustes de la TV"><br><b>Ajustes · Ajustes de la TV</b><br><sub>Acceso a los ajustes de Android.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/16-protector.jpg" alt="Protector de pantalla"><br><b>Protector de pantalla</b><br><sub>El reloj sobre el fondo, oscurecido.</sub></td>
+  </tr>
+</table>
 
 ## Funciones
 
