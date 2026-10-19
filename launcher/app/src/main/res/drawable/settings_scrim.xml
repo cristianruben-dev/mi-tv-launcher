@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Settings backdrop: the wallpaper darkened, more on the left where the rows are. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient android:angle="0" android:startColor="#A608080A" android:centerColor="#7308080A" android:endColor="#4708080A" />
-</shape>

@@ -86,8 +86,10 @@ final class SettingsDialog {
             R.drawable.ic_apps, R.drawable.ic_wallpaper, R.drawable.ic_screensaver,
             R.drawable.ic_sleep, R.drawable.ic_performance};
 
-    /** Darkens the frosted rows a little: they sit over the bright, unscrimmed wallpaper. */
+    /** Darkens the frosted rows a little: they sit over the bright wallpaper. */
     private static final int ROW_TINT = 0x4D000000;
+    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
+    private static final int TEXT_SHADOW = 0xB3000000;
 
     /** Apps section modes. */
     private static final int APPS_DOCK = 0, APPS_VISIBILITY = 1, APPS_ORDER = 2;
@@ -101,7 +103,6 @@ final class SettingsDialog {
     private final List<View> sectionRows = new ArrayList<>();
     private Dialog dialog;
     private ImageView backdrop;
-    private View scrim;
     private View page;
     private LinearLayout rows;
     private ScrollView scroll;
@@ -163,11 +164,11 @@ final class SettingsDialog {
         if (w != null) w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         backdrop = root.findViewById(R.id.backdrop);
-        scrim = root.findViewById(R.id.scrim);
         page = root.findViewById(R.id.page);
         rows = root.findViewById(R.id.rows);
         scroll = root.findViewById(R.id.scroll);
         sectionHint = root.findViewById(R.id.sectionHint);
+        sectionHint.setShadowLayer(6 * density, 0, density, TEXT_SHADOW);
         fadeWhenScrolled(root.findViewById(R.id.sectionsScroll), root.findViewById(R.id.sectionsFrame));
         fadeWhenScrolled(scroll, root.findViewById(R.id.rowsFrame));
 
@@ -977,7 +978,8 @@ final class SettingsDialog {
         TextView h = new TextView(act);
         h.setText(text);
         h.setTextSize(15f);
-        h.setTextColor(0x99FFFFFF);
+        h.setTextColor(0xCCFFFFFF);
+        h.setShadowLayer(6 * density, 0, density, TEXT_SHADOW);
         h.setTypeface(act.getResources().getFont(R.font.outfit));
         h.setPadding((int) (6 * density), (int) (16 * density), (int) (6 * density), (int) (8 * density));
         h.setFocusable(false);

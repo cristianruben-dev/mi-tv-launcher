@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Launcher settings, full screen over the wallpaper: a list on the left and a preview card on the right.
-  The wallpaper picker takes the whole screen in the same window.
+  Launcher settings, full screen straight over the wallpaper (nothing darkens it): the sections on the left
+  and the focused section's options on the right.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -15,12 +15,6 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:importantForAccessibility="no" />
-
-    <View
-        android:id="@+id/scrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/settings_scrim" />
 
     <LinearLayout
         android:id="@+id/page"
@@ -43,6 +37,9 @@
             android:fontFamily="@font/outfit"
             android:fontVariationSettings="'wght' 500"
             android:letterSpacing="-0.02"
+            android:shadowColor="#B3000000"
+            android:shadowRadius="12"
+            android:shadowDy="2"
             android:includeFontPadding="false" />
 
         <LinearLayout
@@ -95,7 +92,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:layout_marginBottom="12dp"
-                    android:textColor="#A6FFFFFF"
+                    android:textColor="#D9FFFFFF"
                     android:textSize="15sp"
                     android:lineSpacingExtra="2dp"
                     android:fontFamily="@font/outfit" />
