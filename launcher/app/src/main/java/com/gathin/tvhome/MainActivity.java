@@ -311,7 +311,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             lp.width = (int) w;
             lp.height = (int) h;
             glass.setLayoutParams(lp);
-            glass.setRadius(16f * density * AppAdapter.FOCUS_SCALE + pad);
+            // GlassView draws its slab inset by the glow pad, exactly over the scaled tile: same corner.
+            glass.setRadius(16f * density * AppAdapter.FOCUS_SCALE);
         }
         glassTargetX = x;
         glassTargetY = y;
