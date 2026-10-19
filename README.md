@@ -80,8 +80,7 @@ fila de fondos cada uno se ve detrás de los ajustes; OK lo usa, y si sales sin 
 | **Fondo de pantalla** | Una fila con los fondos incluidos, que se previsualizan detrás de los ajustes; OK elige. **Cambiar automáticamente**: cada vez que se enciende la TV, cada hora o cada día. |
 | **Protector de pantalla** | Empezar después de 5, 10, 15, 30 minutos o 1 hora, o desactivado. **Probar ahora** lo muestra al momento. |
 | **Apagado automático** | Apaga la TV en 15, 30, 45 minutos, 1 h, 1 h 30 o 2 h, aunque estés viendo algo. Avisa un minuto antes, y la hora de apagado se ve junto al reloj mientras está en marcha. |
-| **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher, blur y velocidad de las animaciones del sistema. |
-| **Ajustes de la TV** | Abre los ajustes de Android (imagen, sonido, red…). |
+| **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher y blur. |
 
 Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valores por defecto
 (dock inicial, apps ocultas, app de TV en vivo, columnas) están en
@@ -174,7 +173,7 @@ instala, da los permisos y deja el launcher como inicio:
 2. Instala el APK por Wi-Fi. Si la firma cambió (de debug a release), desinstala la anterior primero;
    en ese caso los ajustes del launcher vuelven a los valores por defecto.
 3. Da los permisos que la TV no deja dar desde sus menús: ubicación (para leer el nombre del Wi-Fi),
-   `WRITE_SECURE_SETTINGS` y `WRITE_SETTINGS` (protector de pantalla y animaciones del sistema),
+   `WRITE_SECURE_SETTINGS` y `WRITE_SETTINGS` (protector de pantalla),
    `SYSTEM_ALERT_WINDOW` (abrir la entrada al encender) y **administrador del dispositivo** (el
    apagado automático: Android solo deja apagar la pantalla a un administrador).
 4. Lo pone como pantalla de inicio.
@@ -241,9 +240,9 @@ modelo.
 | [`AppMenu.java`](launcher/app/src/main/java/com/gathin/tvhome/AppMenu.java) | Desplegable al mantener pulsada una app. |
 | [`ControlCenter.java`](launcher/app/src/main/java/com/gathin/tvhome/ControlCenter.java) | El Centro de control: la hora, los interruptores y los accesos rápidos. |
 | [`Frost.java`](launcher/app/src/main/java/com/gathin/tvhome/Frost.java) | El vidrio esmerilado del dock para cualquier vista: botones, desplegables y filas de ajustes. |
-| [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | Los ajustes a pantalla completa, sus 8 secciones y la fila de fondos con vista previa. |
+| [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | Los ajustes a pantalla completa, sus 7 secciones y la fila de fondos con vista previa. |
 | [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
-| [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla, animaciones del sistema y memoria. |
+| [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla y memoria. |
 | [`SleepTimer.java`](launcher/app/src/main/java/com/gathin/tvhome/SleepTimer.java) | Apagado automático: alarmas, aviso previo y el administrador que apaga la pantalla. |
 | [`TvHomeApp.java`](launcher/app/src/main/java/com/gathin/tvhome/TvHomeApp.java) | Detecta el encendido de la TV para la entrada al encender y el cambio de fondo. |
 | [`Inputs.java`](launcher/app/src/main/java/com/gathin/tvhome/Inputs.java) | Entradas de la TV (HDMI, AV, TV en vivo) y cómo abrirlas. |

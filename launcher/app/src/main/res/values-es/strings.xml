@@ -37,8 +37,6 @@
     <string name="dock_reset">Restaurar apps predeterminadas</string>
     <string name="wallpaper_hint">Fondo de la pantalla de inicio.</string>
     <string name="wallpaper_empty">Aún no hay fondos incluidos. Agrega imágenes en assets/wallpapers y vuelve a compilar.</string>
-    <string name="tv_settings_hint">Imagen, sonido, red y el resto de ajustes propios de la TV.</string>
-    <string name="open_tv_settings">Abrir ajustes de la TV</string>
     <string name="section_apps">Apps</string>
     <string name="section_screensaver">Protector de pantalla</string>
     <string name="section_performance">Rendimiento</string>
@@ -69,10 +67,6 @@
     <string name="launcher_header">Pantalla de inicio</string>
     <string name="launcher_animations">Animaciones</string>
     <string name="blur_effects">Blur (dock esmerilado y menús)</string>
-    <string name="system_animations_header">Animaciones del sistema</string>
-    <string name="system_animations_normal">Normales</string>
-    <string name="system_animations_fast">Rápidas (0,5×)</string>
-    <string name="system_animations_off">Apagadas</string>
     <string name="menu_open">Abrir</string>
     <string name="menu_add_to_dock">Mover al dock</string>
     <string name="menu_remove_from_dock">Quitar del dock</string>

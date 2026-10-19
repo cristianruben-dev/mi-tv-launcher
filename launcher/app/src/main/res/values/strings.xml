@@ -38,8 +38,6 @@
     <string name="dock_reset">Restore default apps</string>
     <string name="wallpaper_hint">Background of the home screen.</string>
     <string name="wallpaper_empty">No wallpapers bundled yet. Add images to assets/wallpapers and rebuild.</string>
-    <string name="tv_settings_hint">Picture, sound, network and the rest of the TV\'s own settings.</string>
-    <string name="open_tv_settings">Open TV settings</string>
     <string name="section_apps">Apps</string>
     <string name="section_screensaver">Screensaver</string>
     <string name="section_performance">Performance</string>
@@ -70,10 +68,6 @@
     <string name="launcher_header">Home screen</string>
     <string name="launcher_animations">Animations</string>
     <string name="blur_effects">Blur (frosted dock and menus)</string>
-    <string name="system_animations_header">System animations</string>
-    <string name="system_animations_normal">Normal</string>
-    <string name="system_animations_fast">Fast (0.5×)</string>
-    <string name="system_animations_off">Off</string>
     <string name="menu_open">Open</string>
     <string name="menu_add_to_dock">Move to the dock</string>
     <string name="menu_remove_from_dock">Remove from the dock</string>

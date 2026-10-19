@@ -62,8 +62,6 @@ final class SettingsDialog {
         /** The language changed: the host recreates itself and may reopen this section. */
         void onLanguageChanged();
 
-        void openTvSettings();
-
         void previewScreensaver();
 
         /** The wallpaper on the home screen right now, or null for none. */
@@ -80,14 +78,13 @@ final class SettingsDialog {
     static final int SECTION_SCREENSAVER = 4;
     static final int SECTION_SLEEP = 5;
     static final int SECTION_PERFORMANCE = 6;
-    static final int SECTION_TV = 7;
 
     private static final int[] SECTION_TITLES = {R.string.section_general, R.string.section_home,
             R.string.section_apps, R.string.section_wallpaper, R.string.section_screensaver,
-            R.string.section_sleep, R.string.section_performance, R.string.section_tv_settings};
+            R.string.section_sleep, R.string.section_performance};
     private static final int[] SECTION_ICONS = {R.drawable.ic_language, R.drawable.ic_appearance,
             R.drawable.ic_apps, R.drawable.ic_wallpaper, R.drawable.ic_screensaver,
-            R.drawable.ic_sleep, R.drawable.ic_performance, R.drawable.ic_settings};
+            R.drawable.ic_sleep, R.drawable.ic_performance};
 
     /** Darkens the frosted rows a little: they sit over the bright, unscrimmed wallpaper. */
     private static final int ROW_TINT = 0x4D000000;
@@ -184,18 +181,13 @@ final class SettingsDialog {
         for (int i = 0; i < SECTION_TITLES.length; i++) {
             final int section = i;
             View row = newRow();
-            row.setMinimumHeight((int) (44 * density));   // all eight sections fit without scrolling
+            row.setMinimumHeight((int) (44 * density));   // all the sections fit without scrolling
             ((ImageView) row.findViewById(R.id.icon)).setImageResource(SECTION_ICONS[i]);
             ((TextView) row.findViewById(R.id.title)).setText(SECTION_TITLES[i]);
             row.setOnFocusChangeListener((v, focused) -> {
                 if (focused && !rebuilding) select(section);
             });
             row.setOnClickListener(v -> {
-                if (section == SECTION_TV) {
-                    dialog.dismiss();
-                    host.openTvSettings();
-                    return;
-                }
                 View first = firstItem();
                 if (first != null) first.requestFocus();
             });
@@ -288,11 +280,8 @@ final class SettingsDialog {
             case SECTION_SLEEP:
                 buildSleep();
                 break;
-            case SECTION_PERFORMANCE:
-                buildPerformance();
-                break;
             default:
-                buildTv();
+                buildPerformance();
                 break;
         }
         wireFocus();
@@ -801,23 +790,6 @@ final class SettingsDialog {
             refreshGlass();
             host.onBlurChanged();
         });
-
-        addHeader(act.getString(R.string.system_animations_header));
-        float scale = SystemTweaks.animationScale(act);
-        int[] names = {R.string.system_animations_normal, R.string.system_animations_fast, R.string.system_animations_off};
-        final List<View> options = new ArrayList<>();
-        for (int i = 0; i < SystemTweaks.ANIMATION_SCALES.length; i++) {
-            final float s = SystemTweaks.ANIMATION_SCALES[i];
-            View row = addOption(act.getString(names[i]), Math.abs(scale - s) < 0.01f);
-            options.add(row);
-            row.setOnClickListener(v -> {
-                if (!SystemTweaks.setAnimationScale(act, s)) {
-                    Toast.makeText(act, R.string.needs_grant, Toast.LENGTH_LONG).show();
-                    return;
-                }
-                for (int j = 0; j < options.size(); j++) setChecked(options.get(j), SystemTweaks.ANIMATION_SCALES[j] == s);
-            });
-        }
     }
 
     private void showMemory(View row) {
@@ -830,15 +802,6 @@ final class SettingsDialog {
                 Formatter.formatShortFileSize(act, info.availMem)));
         ProgressBar bar = row.findViewById(R.id.memoryBar);
         bar.setProgress(info.totalMem > 0 ? (int) (used * 100 / info.totalMem) : 0);
-    }
-
-    private void buildTv() {
-        sectionHint.setText(R.string.tv_settings_hint);
-        View row = addAction(R.drawable.ic_settings, act.getString(R.string.open_tv_settings));
-        row.setOnClickListener(v -> {
-            dialog.dismiss();
-            host.openTvSettings();
-        });
     }
 
     /** Decodes the wallpaper in use for the backdrop when the home screen has not shown it yet. */
