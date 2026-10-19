@@ -13,6 +13,13 @@
     <string name="good_evening">Good evening</string>
     <string name="good_night">Good night</string>
     <string name="ethernet">Ethernet</string>
+    <string name="network_settings">Network settings</string>
+    <string name="signal">Signal</string>
+    <string name="signal_excellent">Excellent</string>
+    <string name="signal_good">Good</string>
+    <string name="signal_fair">Fair</string>
+    <string name="signal_weak">Weak</string>
+    <string name="ip_address">IP address</string>
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>

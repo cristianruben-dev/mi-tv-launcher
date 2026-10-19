@@ -14,6 +14,8 @@ import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
 import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
@@ -46,6 +48,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -211,7 +214,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         animatePill(btnInputs, this::showInputs);
-        animatePill(btnWifi, () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+        animatePill(btnWifi, this::showWifi);
         animatePill(btnSettings, () -> showSettings(SettingsDialog.SECTION_GENERAL));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
@@ -652,12 +655,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
                 text = getString(R.string.ethernet);
             } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                 WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
-                String ssid = info != null ? info.getSSID() : null;
-                if (ssid != null) {
-                    ssid = ssid.replace("\"", "").trim();
-                    if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
-                }
+                text = networkName(wm != null ? wm.getConnectionInfo() : null);
             }
         } catch (Exception ignored) {
         }
@@ -852,14 +850,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         View anchor = findViewById(R.id.btnInputs);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
-
-        // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
-        int width = Math.max(anchor.getWidth(), (int) (150 * density));
-        final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
-        popup.setOutsideTouchable(true);
-        popup.setAnimationStyle(0);
-        popup.setElevation(0f);
+        final PopupWindow popup = newDropdown(panel);
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
@@ -912,14 +903,79 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             final Intent liveTvIntent = liveTv;
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
         }
-        if (rows.getChildCount() == 0) {
-            Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
-            return;
-        }
+        // Still open the menu with nothing to pick, so the pill never looks dead.
+        if (rows.getChildCount() == 0) addInfoRow(rows, R.drawable.ic_input, getString(R.string.no_inputs), null, false);
+        showDropdown(popup, panel, anchor);
+    }
 
-        // Fit the widest row: TVs that report a status on every port (Sony) would otherwise squeeze the names out.
+    /** Dropdown under the Wi-Fi pill: the network and its state, then a shortcut to the TV's network settings. */
+    private void showWifi() {
+        View anchor = btnWifi;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = newDropdown(panel);
+
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network net = cm != null ? cm.getActiveNetwork() : null;
+        NetworkCapabilities caps = net != null ? cm.getNetworkCapabilities(net) : null;
+        if (caps == null) {
+            addInfoRow(rows, R.drawable.ic_wifi, getString(R.string.offline), null, false);
+        } else {
+            boolean ethernet = caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+            WifiInfo info = null;
+            if (!ethernet && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                info = wm != null ? wm.getConnectionInfo() : null;
+            }
+            String name = ethernet ? getString(R.string.ethernet) : networkName(info);
+            addInfoRow(rows, R.drawable.ic_wifi, name, getString(R.string.connected), true);
+            if (info != null && info.getRssi() > -127) {
+                int[] levels = {R.string.signal_weak, R.string.signal_fair, R.string.signal_good, R.string.signal_excellent};
+                int level = WifiManager.calculateSignalLevel(info.getRssi(), levels.length);
+                addInfoRow(rows, R.drawable.ic_performance, getString(R.string.signal), getString(levels[level]), false);
+            }
+            String ip = ipv4(cm.getLinkProperties(net));
+            if (ip != null) addInfoRow(rows, R.drawable.ic_info, getString(R.string.ip_address), ip, false);
+        }
+        addSeparator(rows);
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.network_settings), -1,
+                () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+        showDropdown(popup, panel, anchor);
+    }
+
+    /** The Wi-Fi name when Android lets us read it (needs location), otherwise just "Wi-Fi". */
+    private String networkName(WifiInfo info) {
+        String ssid = info != null ? info.getSSID() : null;
+        if (ssid != null) {
+            ssid = ssid.replace("\"", "").trim();
+            if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) return ssid;
+        }
+        return getString(R.string.wifi);
+    }
+
+    private static String ipv4(LinkProperties props) {
+        if (props == null) return null;
+        for (LinkAddress a : props.getLinkAddresses()) {
+            if (a.getAddress() instanceof Inet4Address) return a.getAddress().getHostAddress();
+        }
+        return null;
+    }
+
+    /** A glass dropdown for the top-bar pills; fill its rows, then call {@link #showDropdown}. */
+    private PopupWindow newDropdown(View panel) {
+        final PopupWindow popup = new PopupWindow(panel, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+        return popup;
+    }
+
+    private void showDropdown(PopupWindow popup, View panel, View anchor) {
+        // Compact: as wide as the pill (a touch wider so "HDMI 1" fits), or the widest row: TVs that report
+        // a status on every port (Sony) would otherwise squeeze the names out.
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
+        popup.setWidth(Math.max(Math.max(anchor.getWidth(), (int) (150 * density)), panel.getMeasuredWidth()));
 
         // Drop in: fade and unfold from the top edge.
         panel.setAlpha(0f);
@@ -929,7 +985,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(Motion.ms(220))
                 .setInterpolator(new DecelerateInterpolator(1.6f)).start();
-        rows.getChildAt(0).requestFocus();
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            if (rows.getChildAt(i).isFocusable()) {
+                rows.getChildAt(i).requestFocus();
+                break;
+            }
+        }
+    }
+
+    /** A row that only shows something (no highlight, can't be picked); the dot marks a live connection. */
+    private void addInfoRow(LinearLayout rows, int iconRes, String title, String status, boolean dot) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        row.setFocusable(false);
+        row.setClickable(false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView statusView = row.findViewById(R.id.status);
+        if (status == null) statusView.setVisibility(View.GONE);
+        else statusView.setText(status);
+        row.findViewById(R.id.dot).setVisibility(dot ? View.VISIBLE : View.GONE);
+        rows.addView(row);
     }
 
     private void addSeparator(LinearLayout rows) {
