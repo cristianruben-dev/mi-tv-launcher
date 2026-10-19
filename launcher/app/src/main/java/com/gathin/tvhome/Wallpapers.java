@@ -49,14 +49,6 @@ final class Wallpapers {
         Prefs.setWallpaper(ctx, all.get((i + 1) % all.size()));
     }
 
-    /** "blue_hills-2.jpg" → "Blue hills 2". */
-    static String title(String file) {
-        int dot = file.lastIndexOf('.');
-        String s = (dot > 0 ? file.substring(0, dot) : file).replace('_', ' ').replace('-', ' ').trim();
-        if (s.isEmpty()) return file;
-        return s.substring(0, 1).toUpperCase(Locale.getDefault()) + s.substring(1);
-    }
-
     /**
      * Decodes a wallpaper no smaller than the screen, as RGB_565 to halve its memory on 1 GB TVs.
      * Returns null when the file is missing or unreadable.

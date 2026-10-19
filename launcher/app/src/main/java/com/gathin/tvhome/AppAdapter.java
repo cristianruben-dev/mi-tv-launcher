@@ -131,10 +131,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return columns;
     }
 
-    int spanAt(int position) {
-        return 1;
-    }
-
     int gridWidth() {
         return gridWidth;
     }

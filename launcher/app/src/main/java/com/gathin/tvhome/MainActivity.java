@@ -157,12 +157,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         grid = findViewById(R.id.grid);
         adapter = new AppAdapter(this, this, Prefs.columns(this));
         layoutManager = new GridLayoutManager(this, adapter.spanCount());
-        layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-                return adapter.spanAt(position);
-            }
-        });
         grid.setLayoutManager(layoutManager);
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
