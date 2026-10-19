@@ -560,6 +560,9 @@ final class SettingsDialog {
                 line.setOrientation(LinearLayout.HORIZONTAL);
                 line.setTag(R.id.rows, "grid");
                 line.setPadding((int) (6 * density), (int) (4 * density), (int) (6 * density), (int) (4 * density));
+                // The focused tile grows 5%: let it spill into the padding instead of cutting its ring off.
+                line.setClipToPadding(false);
+                line.setClipChildren(false);
                 rows.addView(line);
             }
             final String key = keys.get(i);
