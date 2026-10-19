@@ -695,7 +695,7 @@ final class SettingsDialog {
         int now = SystemTweaks.screensaverMinutes(act);
         final List<View> options = new ArrayList<>();
         for (int m : SystemTweaks.SCREENSAVER_MINUTES) {
-            View row = addOption(minutesLabel(m, R.string.screensaver_off), m == now || (m != 0 && isClosest(m, now)));
+            View row = addOption(Clocks.duration(act, m, R.string.screensaver_off), m == now || (m != 0 && isClosest(m, now)));
             options.add(row);
             row.setOnClickListener(v -> {
                 if (!SystemTweaks.setScreensaver(act, m)) {
@@ -705,13 +705,6 @@ final class SettingsDialog {
                 for (int j = 0; j < options.size(); j++) setChecked(options.get(j), SystemTweaks.SCREENSAVER_MINUTES[j] == m);
             });
         }
-    }
-
-    private String minutesLabel(int m, int offLabel) {
-        if (m == 0) return act.getString(offLabel);
-        if (m % 60 == 0) return m == 60 ? act.getString(R.string.hour_option) : act.getString(R.string.hours_option, m / 60);
-        if (m > 60) return act.getString(R.string.hour_minutes_option, m / 60, m % 60);
-        return act.getString(R.string.minutes_option, m);
     }
 
     /** The offered delay closest to a value set elsewhere (e.g. 20 minutes in the TV's settings). */
@@ -745,7 +738,7 @@ final class SettingsDialog {
         final List<View> options = new ArrayList<>();
         boolean active = SleepTimer.minutesLeft(act) > 0;
         for (int m : SleepTimer.MINUTES) {
-            View row = addOption(minutesLabel(m, R.string.sleep_off), m == 0 && !active);
+            View row = addOption(Clocks.duration(act, m, R.string.sleep_off), m == 0 && !active);
             options.add(row);
             row.setOnClickListener(v -> {
                 if (m > 0 && !SleepTimer.canSleep(act)) {

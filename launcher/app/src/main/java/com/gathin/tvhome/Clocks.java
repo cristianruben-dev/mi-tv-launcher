@@ -46,6 +46,16 @@ final class Clocks {
         return DateFormat.is24HourFormat(ctx);
     }
 
+    /** A length of time as offered in the menus: "Off" (the given label), "10 minutes", "1 hour", "1 h 30 min". */
+    static String duration(Context ctx, int minutes, int offLabel) {
+        if (minutes <= 0) return ctx.getString(offLabel);
+        if (minutes % 60 == 0) {
+            return minutes == 60 ? ctx.getString(R.string.hour_option) : ctx.getString(R.string.hours_option, minutes / 60);
+        }
+        if (minutes > 60) return ctx.getString(R.string.hour_minutes_option, minutes / 60, minutes % 60);
+        return ctx.getString(R.string.minutes_option, minutes);
+    }
+
     /** A wall clock time as text, e.g. "10:45 p. m." or "22:45". */
     static String time(Context ctx, long millis) {
         String pattern = is24Hour(ctx) ? "HH:mm" : "h:mm a";
