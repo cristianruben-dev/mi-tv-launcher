@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Launcher configuration. Edit this file, then run launcher/build-and-install.sh.
-  Package names: on the TV run `pm list packages` (tools/tv.py 'pm list packages').
+  Launcher configuration. Edit this file, then run scripts/deploy.sh.
+  Package names: on the TV run `adb shell pm list packages`.
 -->
 <resources>
 

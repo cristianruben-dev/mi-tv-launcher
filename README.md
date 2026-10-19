@@ -4,9 +4,8 @@ Launcher ligero tipo Apple TV para Android TV, con ajustes propios, y scripts pa
 bloatware y desplegar por adb. Está probado en una **Xiaomi Mi TV (MiTV_MOOR6, Android TV 11,
 1,8 GB de RAM)**.
 
-Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). El README original
-(en inglés, con el método completo de debloat para otras marcas) está en
-[`docs/README-original.md`](docs/README-original.md).
+Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack), recortado a lo que
+usa esta TV. El proyecto original, con el método para otras marcas, sigue en su repositorio.
 
 ![Pantalla de inicio con fondo de pantalla y 6 columnas](docs/screenshots/01-inicio.jpg)
 
