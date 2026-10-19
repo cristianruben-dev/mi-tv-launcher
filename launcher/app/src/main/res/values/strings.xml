@@ -106,7 +106,6 @@
     <string name="hour_minutes_option">%1$d h %2$d min</string>
     <string name="control_center">Control Center</string>
     <string name="cc_turn_off">Turn off</string>
-    <string name="cc_turn_off_hint">Standby now</string>
     <string name="cc_minutes">%1$d min</string>
     <string name="cc_free">%1$s free</string>
     <string name="cc_bluetooth">Bluetooth</string>

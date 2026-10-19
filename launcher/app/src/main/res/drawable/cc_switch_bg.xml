@@ -1,17 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Control Center switch: white when focused, blue when on, frosted when off. -->
+<!--
+  Control Center switch: blue when on, frosted when off. Focus adds a white ring around it and never
+  changes the fill, so on and off always look the same.
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true">
-        <shape android:shape="oval">
-            <solid android:color="#F5FFFFFF" />
-        </shape>
+    <item android:state_focused="true" android:state_activated="true">
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <stroke android:width="2.5dp" android:color="#F5FFFFFF" />
+                </shape>
+            </item>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="oval">
+                    <solid android:color="#FF0A84FF" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
-    <item android:state_activated="true">
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <stroke android:width="2.5dp" android:color="#F5FFFFFF" />
+                </shape>
+            </item>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="oval">
+                    <solid android:color="#2EFFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_activated="true" android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
         <shape android:shape="oval">
             <solid android:color="#FF0A84FF" />
         </shape>
     </item>
-    <item>
+    <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
         <shape android:shape="oval">
             <solid android:color="#2EFFFFFF" />
         </shape>

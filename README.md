@@ -115,10 +115,16 @@ temporizador de apagado de la TV no cambia.
 ### Centro de control
 
 El botón de los dos interruptores, junto a Ajustes, abre un panel como el de tvOS sobre el inicio
-desenfocado: la hora y la fecha; una fila de **interruptores** que se encienden y apagan con OK (azul =
-encendido): **Wi‑Fi**, **Bluetooth**, **Silencio** y **Protector de pantalla**; y cuatro accesos: **Apagar**
-(reposo ahora), **Apagado automático** (cada OK pasa a la siguiente duración: 15 min, 30 min… y
-Desactivado), **Liberar memoria** (con la memoria libre) y **Ajustes de la TV**.
+desenfocado: la hora y la fecha; una fila de botones redondos, los **interruptores** **Wi‑Fi**,
+**Bluetooth** y **Silencio** (OK los enciende y apaga; azul = encendido) y **Apagar** (reposo ahora); y
+cuatro accesos: **Protector de pantalla** (OK lo enciende a 10 min o lo apaga), **Apagado automático**
+(cada OK pasa a la siguiente duración: 15 min, 30 min… y Desactivado), **Liberar memoria** (con la
+memoria libre) y **Ajustes de la TV**. El elemento enfocado lleva un aro blanco y conserva su color, así
+el azul siempre significa encendido.
+
+**Mantén pulsado OK** en el Protector de pantalla o en el Apagado automático: el acceso crece hasta
+cubrir el panel y muestra todas sus duraciones, con la actual en azul. OK elige una y Atrás deja la que
+estaba; en los dos casos la tarjeta vuelve a encogerse en su acceso.
 
 - Apagar y el apagado automático necesitan el administrador del dispositivo, y el interruptor del
   protector el permiso `WRITE_SECURE_SETTINGS`; los dos los da `deploy.sh`.
