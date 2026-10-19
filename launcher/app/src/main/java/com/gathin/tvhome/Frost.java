@@ -54,8 +54,13 @@ final class Frost {
 
     /** Gives {@code v} a frosted background, or leaves its own when blur is off. */
     static void apply(View v, Source src, float radiusPx, int idleTint) {
+        apply(v, src, radiusPx, idleTint, true);
+    }
+
+    /** As above; {@code whiteOnFocus} false keeps the glass when focused (the view draws its own focus edge). */
+    static void apply(View v, Source src, float radiusPx, int idleTint, boolean whiteOnFocus) {
         if (!Prefs.blur(v.getContext())) return;
-        v.setBackground(new Glass(v, src, radiusPx, idleTint));
+        v.setBackground(new Glass(v, src, radiusPx, idleTint, whiteOnFocus));
     }
 
     /** Redraws every frosted view under {@code v}, after its source changed or it moved. */
@@ -76,6 +81,7 @@ final class Frost {
         private final Source src;
         private final float radius;
         private final int idleTint;
+        private final boolean whiteOnFocus;
         private final Paint picture = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -85,11 +91,12 @@ final class Frost {
         private final int[] at = new int[2];
         private boolean focused, activated;
 
-        Glass(View host, Source src, float radius, int idleTint) {
+        Glass(View host, Source src, float radius, int idleTint, boolean whiteOnFocus) {
             this.host = host;
             this.src = src;
             this.radius = radius;
             this.idleTint = idleTint;
+            this.whiteOnFocus = whiteOnFocus;
             rim.setStyle(Paint.Style.STROKE);
             rim.setStrokeWidth(host.getResources().getDisplayMetrics().density);
         }
@@ -99,7 +106,7 @@ final class Frost {
             Rect b = getBounds();
             rect.set(b);
             float r = Math.min(radius, Math.min(rect.width(), rect.height()) / 2f);
-            if (focused) {
+            if (focused && whiteOnFocus) {
                 fill.setColor(0xF5FFFFFF);
                 c.drawRoundRect(rect, r, r, fill);
                 return;

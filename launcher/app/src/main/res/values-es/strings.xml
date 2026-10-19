@@ -111,4 +111,21 @@
     <string name="cc_mute">Silencio</string>
     <string name="cc_screensaver">Protector</string>
     <string name="cc_cant_switch">La TV no lo permitió</string>
+
+    <!-- House Control en la pantalla de inicio -->
+    <string name="house_scenes">Escenas</string>
+    <string name="house_your_home">Tu casa</string>
+    <string name="house_demo">Casa de demostración</string>
+    <string name="house_demo_short">Demo</string>
+    <string name="house_open">Abrir</string>
+    <string name="house_connecting">Conectando con House Control…</string>
+    <string name="house_reconnect">Abre House Control para reconectar</string>
+    <string name="house_no_plan">Importa tu plano en House Control</string>
+    <string name="house_connect_devices">Conecta tus dispositivos en House Control</string>
+    <string name="house_lights_off">Todas las luces apagadas</string>
+    <string name="house_lights_on">%1$d de %2$d luces encendidas</string>
+    <string name="house_reconnecting">Reconectando</string>
+    <string name="house_setting_scene">Aplicando %1$s…</string>
+    <string name="house_some_failed">Algunos dispositivos no respondieron</string>
+    <string name="house_scene_failed">No se pudo aplicar la escena. Abre House Control.</string>
 </resources>

@@ -61,7 +61,7 @@ import java.util.Set;
  * tvOS style home: a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener, SettingsDialog.Host, AppMenu.Host,
-        ControlCenter.Host {
+        ControlCenter.Host, HousePanel.Host {
 
     private static final long MINUTE_MS = 60_000L;
     private String liveTvPkg;
@@ -86,6 +86,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private ImageView backdropTile;
     private FadeFrame gridFrame;
     private DockDecoration dock;
+    /** House Control's scenes and live 3D home, between the top bar and the dock; null when it is not installed. */
+    private HousePanel house;
+    /** The grid is scrolled past the dock: the house panel steps aside. */
+    private boolean houseAway;
+    private boolean resumed;
     /** Asset name of the wallpaper on screen (or being loaded); "" for none, null before the first load. */
     private String loadedWallpaper;
     /** Section to reopen after the activity is recreated for a language change, or -1. */
@@ -179,6 +184,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
                 grid.post(this::refreshGlass);   // the dock moved
             }
+            grid.post(this::placeHouse);
         });
 
         // Keep the glass glued to its tile while the grid scrolls.
@@ -187,6 +193,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
                 // Tiles reach the top edge only once the grid scrolls past the dock.
                 gridFrame.setFadeActive(rv.computeVerticalScrollOffset() > 0);
+                setHouseAway(rv.computeVerticalScrollOffset() > 0);
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 if (springY.isRunning()) springY.animateToFinalPosition(glassTargetY);
@@ -214,6 +221,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && houseShown()) {
+                house.focusNearest(centerX(v));
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
@@ -235,6 +246,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
+        syncHouse();
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -265,6 +278,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     @Override
     protected void onPause() {
         super.onPause();
+        resumed = false;
+        if (house != null) house.setActive(false);
         handler.removeCallbacks(minuteTick);
     }
 
@@ -346,6 +361,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     // ---- top shelf -------------------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
+        // The house panel's scenes sit where the big name would go: the dock's highlight is enough then.
+        if (houseShown()) {
+            hideHero();
+            return;
+        }
         String label = adapter.labelAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
@@ -389,6 +409,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         int count = adapter.getItemCount(), cols = adapter.columns();
         int target;
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (position < cols && houseShown()) {      // dock row: up to House Control's scenes and home
+                RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
+                house.focusNearest(vh != null ? centerX(vh.itemView) : 0f);
+                return true;
+            }
             if (position < cols) return false;          // dock row: let focus move to the top bar
             target = position - cols;
         } else {
@@ -423,6 +448,127 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             }
         });
         grid.smoothScrollToPosition(pos);
+    }
+
+    // ---- House Control ---------------------------------------------------------------------------
+
+    /** Adds the house panel when House Control is installed, removes it when it is gone. */
+    private void syncHouse() {
+        boolean installed = HousePanel.installed(this);
+        if (installed && house == null) {
+            house = new HousePanel(this, this);
+            house.setVisibility(View.INVISIBLE);
+            // Above the home screen, below the tiles' glass and the menus' blurred backdrop.
+            root.addView(house, root.indexOfChild(glass), new FrameLayout.LayoutParams(1, 1));
+            root.post(this::placeHouse);
+        } else if (!installed && house != null) {
+            root.removeView(house);
+            house = null;
+        }
+        if (house != null) house.setActive(resumed && !houseAway);
+    }
+
+    /** Fits the panel between the top bar and the dock's big app name; hides it when there is too little room. */
+    private void placeHouse() {
+        if (house == null || grid.getHeight() == 0) return;
+        Rect bar = new Rect(0, 0, 0, findViewById(R.id.leftBlock).getHeight());
+        root.offsetDescendantRectToMyCoords(findViewById(R.id.leftBlock), bar);
+        Rect g = new Rect();
+        root.offsetDescendantRectToMyCoords(grid, g);
+        float dockTop = g.top + grid.getPaddingTop();
+        int top = bar.bottom + (int) (30 * density);
+        // The panel reaches down to the dock band (drawn 8dp above the dock row).
+        int bottom = (int) (dockTop - (8 + 18) * density);
+        int left = (int) (60 * density), right = root.getWidth() - (int) (56 * density);
+        int height = bottom - top, width = right - left;
+        boolean fits = height >= (int) (120 * density) && width > 0;
+        if (fits) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) house.getLayoutParams();
+            if (lp.width != width || lp.height != height || lp.leftMargin != left || lp.topMargin != top) {
+                lp.width = width;
+                lp.height = height;
+                lp.leftMargin = left;
+                lp.topMargin = top;
+                house.setLayoutParams(lp);
+                house.arrange(width, height);
+            }
+        }
+        if (fits && !houseAway) hideHero();
+        house.setTag(fits);
+        house.setVisibility(fits && !houseAway ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    /** The panel fades out while the grid is scrolled up over it, and stops drawing the model. */
+    private void setHouseAway(boolean away) {
+        if (house == null || away == houseAway) return;
+        houseAway = away;
+        house.setActive(resumed && !away);
+        house.animate().cancel();
+        if (away) {
+            house.animate().alpha(0f).setDuration(Motion.ms(160))
+                    .withEndAction(() -> { if (houseAway) house.setVisibility(View.INVISIBLE); }).start();
+        } else if (Boolean.TRUE.equals(house.getTag())) {
+            hideHero();
+            house.setVisibility(View.VISIBLE);
+            house.animate().alpha(1f).setDuration(Motion.ms(220)).start();
+        }
+    }
+
+    private boolean houseShown() {
+        return house != null && house.getVisibility() == View.VISIBLE;
+    }
+
+    private float centerX(View v) {
+        int[] l = new int[2];
+        v.getLocationOnScreen(l);
+        return l[0] + v.getWidth() / 2f;
+    }
+
+    @Override
+    public void panelUp(float x) {
+        View best = null;
+        float distance = Float.MAX_VALUE;
+        for (int id : new int[]{R.id.btnInputs, R.id.btnWifi, R.id.btnControl, R.id.btnSettings}) {
+            View pill = findViewById(id);
+            float d = Math.abs(centerX(pill) - x);
+            if (pill.getVisibility() == View.VISIBLE && d < distance) {
+                distance = d;
+                best = pill;
+            }
+        }
+        if (best != null) best.requestFocus();
+    }
+
+    @Override
+    public void panelDown(float x) {
+        int best = 0;
+        float distance = Float.MAX_VALUE;
+        for (int i = 0; i < Math.min(adapter.dockSize(), adapter.getItemCount()); i++) {
+            RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(i);
+            if (vh == null) continue;
+            float d = Math.abs(centerX(vh.itemView) - x);
+            if (d < distance) {
+                distance = d;
+                best = i;
+            }
+        }
+        focusTile(best);
+    }
+
+    @Override
+    public void panelFocused() {
+        hideHero();
+    }
+
+    @Override
+    public void openHouseControl() {
+        Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(HousePanel.PACKAGE);
+        if (i == null) i = getPackageManager().getLaunchIntentForPackage(HousePanel.PACKAGE);
+        if (i == null) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        open(i);
     }
 
     // ---- long press menu -------------------------------------------------------------------------
@@ -753,6 +899,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             pill.setBackgroundResource(R.drawable.pill_bg);
             Frost.apply(pill, wallpaperFrost, 21 * density, 0x33000000);
         }
+        if (house != null) house.applyBlur();
     }
 
     @Override
@@ -804,6 +951,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         dock.setBlurSource(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
         wallpaperFrost.set(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
         Frost.invalidateAll(findViewById(R.id.topButtons));
+        if (house != null) Frost.invalidateAll(house);
         grid.invalidate();
     }
 

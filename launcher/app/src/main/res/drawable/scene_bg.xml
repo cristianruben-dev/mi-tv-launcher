@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Scene buttons beside the 3D home: the top bar's pill, as a rounded tile; brighter while it is the active scene.
+     Focus is a white edge drawn by the tile itself. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#4DFFFFFF" android:endColor="#29FFFFFF" />
+            <stroke android:width="1dp" android:color="#66FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#2EFFFFFF" android:endColor="#14FFFFFF" />
+            <stroke android:width="1dp" android:color="#38FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</selector>
