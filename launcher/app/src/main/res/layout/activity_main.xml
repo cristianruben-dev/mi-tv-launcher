@@ -14,6 +14,15 @@
         android:visibility="gone"
         android:importantForAccessibility="no" />
 
+    <!-- Darkens the wallpaper by the amount chosen in Settings → Personalisation. -->
+    <View
+        android:id="@+id/wallpaperDim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF000000"
+        android:alpha="0"
+        android:visibility="gone" />
+
     <!-- Ambient glow in the colour of the focused app. -->
     <View
         android:id="@+id/ambient"
@@ -203,5 +212,14 @@
         android:layout_width="10dp"
         android:layout_height="10dp"
         android:alpha="0"
+        android:importantForAccessibility="no" />
+
+    <!-- Blurred copy of the home screen behind the long press menu. -->
+    <ImageView
+        android:id="@+id/backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone"
         android:importantForAccessibility="no" />
 </FrameLayout>

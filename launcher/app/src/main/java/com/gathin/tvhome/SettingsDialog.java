@@ -1,11 +1,14 @@
 package com.gathin.tvhome;
 
+import android.app.ActivityManager;
 import android.app.Activity;
 import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Outline;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.format.Formatter;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -13,6 +16,7 @@ import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,31 +35,48 @@ import java.util.Set;
 final class SettingsDialog {
 
     interface Host {
-        /** Every app on the home screen, alphabetical. */
+        /** Shown apps, alphabetical. */
         List<AppAdapter.Entry> allApps();
 
-        void onDockAppsChanged();
+        /** Every app including hidden ones, dock first, then in grid order. */
+        List<AppAdapter.Entry> appsInGridOrder();
 
-        void onDockStyleChanged();
+        /** Dock, hidden apps or order changed. */
+        void onAppsChanged();
+
+        void onColumnsChanged();
+
+        void onDimChanged();
 
         void onWallpaperChanged();
+
+        void onBlurChanged();
+
+        void onAnimationsChanged();
 
         /** The language changed: the host recreates itself and may reopen this section. */
         void onLanguageChanged();
 
         void openTvSettings();
+
+        void previewScreensaver();
     }
 
     static final int SECTION_LANGUAGE = 0;
     static final int SECTION_DOCK = 1;
-    static final int SECTION_APPEARANCE = 2;
-    static final int SECTION_WALLPAPER = 3;
-    static final int SECTION_TV = 4;
+    static final int SECTION_APPS = 2;
+    static final int SECTION_PERSONALIZE = 3;
+    static final int SECTION_WALLPAPER = 4;
+    static final int SECTION_SCREENSAVER = 5;
+    static final int SECTION_PERFORMANCE = 6;
+    static final int SECTION_TV = 7;
 
     private static final int[] SECTION_TITLES = {R.string.section_language, R.string.section_dock,
-            R.string.section_appearance, R.string.section_wallpaper, R.string.section_tv_settings};
+            R.string.section_apps, R.string.section_personalize, R.string.section_wallpaper,
+            R.string.section_screensaver, R.string.section_performance, R.string.section_tv_settings};
     private static final int[] SECTION_ICONS = {R.drawable.ic_language, R.drawable.ic_dock,
-            R.drawable.ic_appearance, R.drawable.ic_wallpaper, R.drawable.ic_settings};
+            R.drawable.ic_apps, R.drawable.ic_appearance, R.drawable.ic_wallpaper,
+            R.drawable.ic_screensaver, R.drawable.ic_performance, R.drawable.ic_settings};
 
     private final Activity act;
     private final Host host;
@@ -70,6 +91,17 @@ final class SettingsDialog {
     private int current = -1;
     /** Bumped on every section switch so late thumbnail loads land only in the section that asked. */
     private int generation;
+    /** Apps section: false shows and hides apps, true arranges them. */
+    private boolean arranging;
+    /** Apps section: the row picked up for moving, or null. */
+    private View carried;
+    /** App to pick up when the Apps section opens (from the long press menu's "Arrange"). */
+    private String carryOnOpen;
+    /**
+     * True while a section's rows are replaced. Removing the focused row sends focus to the first sidebar
+     * entry, and that focus change must not switch sections.
+     */
+    private boolean rebuilding;
 
     SettingsDialog(Activity act, Host host) {
         this.act = act;
@@ -77,13 +109,16 @@ final class SettingsDialog {
         this.density = act.getResources().getDisplayMetrics().density;
     }
 
-    void show(int startSection) {
+    /** Opens on a section; with {@code arrangePkg}, opens Apps in arrange mode with that app picked up. */
+    void show(int startSection, String arrangePkg) {
+        carryOnOpen = arrangePkg;
+        arranging = arrangePkg != null;
         dialog = new Dialog(act, R.style.SettingsDialog);
         View panel = act.getLayoutInflater().inflate(R.layout.dialog_settings, null, false);
         dialog.setContentView(panel);
         Window w = dialog.getWindow();
         // Inflated without a parent the layout's own size is lost, so size the window to it.
-        if (w != null) w.setLayout((int) (760 * density), (int) (440 * density));
+        if (w != null) w.setLayout((int) (780 * density), (int) (480 * density));
 
         rows = panel.findViewById(R.id.rows);
         sectionTitle = panel.findViewById(R.id.sectionTitle);
@@ -97,7 +132,7 @@ final class SettingsDialog {
             ((ImageView) row.findViewById(R.id.icon)).setImageResource(SECTION_ICONS[i]);
             ((TextView) row.findViewById(R.id.title)).setText(SECTION_TITLES[i]);
             row.setOnFocusChangeListener((v, focused) -> {
-                if (focused) select(section);
+                if (focused && !rebuilding) select(section);
             });
             row.setOnClickListener(v -> {
                 if (section == SECTION_TV) {
@@ -105,7 +140,8 @@ final class SettingsDialog {
                     host.openTvSettings();
                     return;
                 }
-                if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+                View first = firstFocusableRow();
+                if (first != null) first.requestFocus();
             });
             sections.addView(row);
             sectionRows.add(row);
@@ -121,12 +157,13 @@ final class SettingsDialog {
         panel.setAlpha(0f);
         panel.setScaleX(0.94f);
         panel.setScaleY(0.94f);
-        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240)
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(Motion.ms(240))
                 .setInterpolator(new DecelerateInterpolator(1.6f)).start();
 
         int start = Math.max(0, Math.min(startSection, sectionRows.size() - 1));
         select(start);
-        sectionRows.get(start).requestFocus();
+        if (carried != null) carried.requestFocus();
+        else sectionRows.get(start).requestFocus();
     }
 
     // ---- sections ------------------------------------------------------------------------------
@@ -135,41 +172,69 @@ final class SettingsDialog {
         if (section == current) return;
         current = section;
         generation++;
+        carried = null;
         for (int i = 0; i < sectionRows.size(); i++) sectionRows.get(i).setActivated(i == section);
-        sectionTitle.setText(SECTION_TITLES[section]);
+        rebuild();
+    }
+
+    /** Redraws the open section, e.g. after switching the Apps mode. */
+    private void rebuild() {
+        rebuilding = true;
+        sectionTitle.setText(SECTION_TITLES[current]);
         rows.removeAllViews();
         scroll.scrollTo(0, 0);
-        switch (section) {
+        switch (current) {
             case SECTION_LANGUAGE:
                 buildLanguage();
                 break;
             case SECTION_DOCK:
                 buildDock();
                 break;
-            case SECTION_APPEARANCE:
-                buildAppearance();
+            case SECTION_APPS:
+                buildApps();
+                break;
+            case SECTION_PERSONALIZE:
+                buildPersonalize();
                 break;
             case SECTION_WALLPAPER:
                 buildWallpaper();
+                break;
+            case SECTION_SCREENSAVER:
+                buildScreensaver();
+                break;
+            case SECTION_PERFORMANCE:
+                buildPerformance();
                 break;
             default:
                 buildTv();
                 break;
         }
         wireFocus();
+        rebuilding = false;
+    }
+
+    private View firstFocusableRow() {
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            if (rows.getChildAt(i).isFocusable()) return rows.getChildAt(i);
+        }
+        return null;
     }
 
     /** Right from the sidebar enters the section; Left from a row returns to its sidebar entry. */
     private void wireFocus() {
-        int n = rows.getChildCount();
-        if (n == 0) return;
-        View firstRow = rows.getChildAt(0), lastRow = rows.getChildAt(n - 1);
+        List<View> focusable = new ArrayList<>();
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            if (rows.getChildAt(i).isFocusable()) focusable.add(rows.getChildAt(i));
+        }
+        if (focusable.isEmpty()) return;
+        View firstRow = focusable.get(0), lastRow = focusable.get(focusable.size() - 1);
         for (View s : sectionRows) s.setNextFocusRightId(firstRow.getId());
         int back = sectionRows.get(current).getId();
-        for (int i = 0; i < n; i++) {
-            View r = rows.getChildAt(i);
+        for (View r : focusable) {
             r.setNextFocusLeftId(back);
             r.setNextFocusRightId(r.getId());
+            r.setNextFocusUpId(View.NO_ID);
+            r.setNextFocusDownId(View.NO_ID);
         }
         firstRow.setNextFocusUpId(firstRow.getId());
         lastRow.setNextFocusDownId(lastRow.getId());
@@ -209,12 +274,7 @@ final class SettingsDialog {
         };
 
         for (AppAdapter.Entry e : apps) {
-            View row = newRow(rows, R.drawable.input_row_bg);
-            ImageView icon = row.findViewById(R.id.icon);
-            icon.setImageTintList(null);
-            icon.setImageDrawable(e.icon);
-            sizeIcon(icon, 28, 28);
-            ((TextView) row.findViewById(R.id.title)).setText(e.label);
+            View row = appRow(e);
             badges.put(e.pkg, row.findViewById(R.id.badge));
             row.setOnClickListener(v -> {
                 List<String> dock = installedDock(installed);
@@ -228,43 +288,179 @@ final class SettingsDialog {
                 }
                 Prefs.setDockApps(act, dock);
                 refresh.run();
-                host.onDockAppsChanged();
+                host.onAppsChanged();
             });
-            rows.addView(row);
         }
 
-        View reset = newRow(rows, R.drawable.input_row_bg);
-        ((ImageView) reset.findViewById(R.id.icon)).setImageResource(R.drawable.ic_dock);
-        ((TextView) reset.findViewById(R.id.title)).setText(R.string.dock_reset);
+        View reset = addAction(R.drawable.ic_dock, act.getString(R.string.dock_reset));
         reset.setOnClickListener(v -> {
             Prefs.resetDockApps(act);
             refresh.run();
-            host.onDockAppsChanged();
+            host.onAppsChanged();
         });
-        rows.addView(reset);
         refresh.run();
     }
 
-    /** The dock as saved, minus apps that are no longer installed. */
+    /** The dock as saved, minus apps that are no longer installed or shown. */
     private List<String> installedDock(Set<String> installed) {
         List<String> dock = new ArrayList<>();
         for (String p : Prefs.dockApps(act)) if (installed.contains(p) && !dock.contains(p)) dock.add(p);
         return dock;
     }
 
-    private void buildAppearance() {
-        sectionHint.setText(R.string.appearance_hint);
-        String[] styles = {Prefs.DOCK_SOLID, Prefs.DOCK_BLUR};
-        int[] names = {R.string.dock_style_solid, R.string.dock_style_blur};
-        final List<View> options = new ArrayList<>();
-        for (int i = 0; i < styles.length; i++) {
-            final String style = styles[i];
-            View row = addOption(act.getString(names[i]), style.equals(Prefs.dockStyle(act)));
-            options.add(row);
+    // ---- apps: show/hide and arrange ---------------------------------------------------------
+
+    private void buildApps() {
+        sectionHint.setText(arranging ? R.string.apps_arrange_hint : R.string.apps_visibility_hint);
+        View showHide = addOption(act.getString(R.string.apps_mode_visibility), !arranging);
+        View arrange = addOption(act.getString(R.string.apps_mode_arrange), arranging);
+        showHide.setOnClickListener(v -> switchAppsMode(false));
+        arrange.setOnClickListener(v -> switchAppsMode(true));
+        addHeader(act.getString(arranging ? R.string.apps_header_order : R.string.apps_header_visibility));
+
+        // Shown apps come first in grid order, so the first DOCK of them are the dock, which is managed
+        // in "Dock apps"; hidden apps follow.
+        List<AppAdapter.Entry> apps = host.appsInGridOrder();
+        Set<String> hidden = Prefs.hiddenApps(act);
+        int seen = 0;
+        for (AppAdapter.Entry e : apps) {
+            boolean isHidden = hidden.contains(e.pkg);
+            if (!isHidden && seen++ < AppAdapter.DOCK) continue;   // dock apps
+            if (arranging && isHidden) continue;                 // hidden apps have no place in the grid
+            View row = appRow(e);
+            row.setTag(e.pkg);
+            if (arranging) {
+                row.setOnClickListener(v -> toggleCarry(row));
+                row.setOnKeyListener((v, keyCode, event) -> carryKeys(row, keyCode, event));
+                if (e.pkg.equals(carryOnOpen)) {
+                    carryOnOpen = null;
+                    pickUp(row);
+                }
+            } else {
+                setChecked(row, !isHidden);
+                row.setAlpha(isHidden ? 0.55f : 1f);
+                row.setOnClickListener(v -> {
+                    Set<String> h = Prefs.hiddenApps(act);
+                    boolean nowHidden = !h.contains(e.pkg);
+                    if (nowHidden) h.add(e.pkg);
+                    else h.remove(e.pkg);
+                    Prefs.setHiddenApps(act, h);
+                    setChecked(row, !nowHidden);
+                    row.setAlpha(nowHidden ? 0.55f : 1f);
+                    host.onAppsChanged();
+                });
+            }
+        }
+        if (arranging) {
+            View reset = addAction(R.drawable.ic_arrange, act.getString(R.string.apps_reset_order));
+            reset.setOnClickListener(v -> {
+                Prefs.resetAppOrder(act);
+                host.onAppsChanged();
+                rebuild();
+                View f = firstFocusableRow();
+                if (f != null) f.requestFocus();
+            });
+        }
+    }
+
+    private void switchAppsMode(boolean arrange) {
+        if (arranging == arrange) return;
+        arranging = arrange;
+        carried = null;
+        generation++;
+        rebuild();
+        // Stay on the mode row just chosen.
+        View target = rows.getChildAt(arrange ? 1 : 0);
+        if (target != null) target.requestFocus();
+    }
+
+    private void toggleCarry(View row) {
+        if (carried == row) drop();
+        else {
+            if (carried != null) drop();
+            pickUp(row);
+        }
+    }
+
+    private void pickUp(View row) {
+        carried = row;
+        row.setBackgroundResource(R.drawable.sidebar_row_bg);
+        row.setActivated(true);
+        TextView badge = row.findViewById(R.id.badge);
+        badge.setText("↕");
+        badge.setVisibility(View.VISIBLE);
+        row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(Motion.ms(160)).start();
+        sectionHint.setText(R.string.apps_carry_hint);
+    }
+
+    private void drop() {
+        if (carried == null) return;
+        View row = carried;
+        carried = null;
+        row.setActivated(false);
+        row.setBackgroundResource(R.drawable.input_row_bg);
+        row.findViewById(R.id.badge).setVisibility(View.GONE);
+        row.animate().scaleX(1f).scaleY(1f).setDuration(Motion.ms(160)).start();
+        sectionHint.setText(R.string.apps_arrange_hint);
+    }
+
+    /** While an app is carried: Up/Down move it, Back or OK drops it. */
+    private boolean carryKeys(View row, int keyCode, KeyEvent event) {
+        if (carried != row) return false;
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.getAction() == KeyEvent.ACTION_UP) drop();
+            return true;
+        }
+        if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+        if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+        int idx = rows.indexOfChild(row);
+        int to = keyCode == KeyEvent.KEYCODE_DPAD_UP ? idx - 1 : idx + 1;
+        View neighbour = to >= 0 && to < rows.getChildCount() ? rows.getChildAt(to) : null;
+        if (neighbour == null || !(neighbour.getTag() instanceof String)) return true;   // ends of the app list
+        // Move the neighbour to the other side rather than the carried row: the carried row keeps focus.
+        rows.removeView(neighbour);
+        rows.addView(neighbour, idx);
+        row.getParent().requestChildFocus(row, row);   // keep the moved row in view
+        wireFocus();
+        saveOrder();
+        return true;
+    }
+
+    private void saveOrder() {
+        List<String> order = new ArrayList<>();
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            Object tag = rows.getChildAt(i).getTag();
+            if (tag instanceof String) order.add((String) tag);
+        }
+        Prefs.setAppOrder(act, order);
+        host.onAppsChanged();
+    }
+
+    // ---- look ------------------------------------------------------------------------------------
+
+    private void buildPersonalize() {
+        sectionHint.setText(R.string.personalize_hint);
+        addHeader(act.getString(R.string.columns_header));
+        final List<View> colRows = new ArrayList<>();
+        for (int c : Prefs.COLUMN_CHOICES) {
+            View row = addOption(act.getString(R.string.columns_option, c), c == Prefs.columns(act));
+            colRows.add(row);
             row.setOnClickListener(v -> {
-                Prefs.setDockStyle(act, style);
-                for (int j = 0; j < options.size(); j++) setChecked(options.get(j), styles[j].equals(style));
-                host.onDockStyleChanged();
+                Prefs.setColumns(act, c);
+                for (int j = 0; j < colRows.size(); j++) setChecked(colRows.get(j), Prefs.COLUMN_CHOICES[j] == c);
+                host.onColumnsChanged();
+            });
+        }
+        addHeader(act.getString(R.string.dim_header));
+        final List<View> dimRows = new ArrayList<>();
+        for (int d : Prefs.DIM_CHOICES) {
+            String title = d == 0 ? act.getString(R.string.dim_none) : act.getString(R.string.dim_option, d);
+            View row = addOption(title, d == Prefs.wallpaperDim(act));
+            dimRows.add(row);
+            row.setOnClickListener(v -> {
+                Prefs.setWallpaperDim(act, d);
+                for (int j = 0; j < dimRows.size(); j++) setChecked(dimRows.get(j), Prefs.DIM_CHOICES[j] == d);
+                host.onDimChanged();
             });
         }
     }
@@ -300,16 +496,134 @@ final class SettingsDialog {
         }
     }
 
+    // ---- screensaver -----------------------------------------------------------------------------
+
+    private void buildScreensaver() {
+        boolean granted = SystemTweaks.canWrite(act);
+        sectionHint.setText(granted ? act.getString(R.string.screensaver_hint)
+                : act.getString(R.string.screensaver_hint) + " " + act.getString(R.string.needs_grant));
+        View preview = addAction(R.drawable.ic_open, act.getString(R.string.screensaver_preview));
+        preview.setOnClickListener(v -> {
+            dialog.dismiss();
+            host.previewScreensaver();
+        });
+        addHeader(act.getString(R.string.screensaver_header));
+        int current = SystemTweaks.screensaverMinutes(act);
+        final List<View> options = new ArrayList<>();
+        for (int m : SystemTweaks.SCREENSAVER_MINUTES) {
+            String title = m == 0 ? act.getString(R.string.screensaver_off)
+                    : m < 60 ? act.getString(R.string.minutes_option, m) : act.getString(R.string.hour_option);
+            View row = addOption(title, m == current || (m != 0 && isClosest(m, current)));
+            options.add(row);
+            row.setOnClickListener(v -> {
+                if (!SystemTweaks.setScreensaver(act, m)) {
+                    Toast.makeText(act, R.string.needs_grant, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                for (int j = 0; j < options.size(); j++) setChecked(options.get(j), SystemTweaks.SCREENSAVER_MINUTES[j] == m);
+            });
+        }
+    }
+
+    /** The offered delay closest to a value set elsewhere (e.g. 20 minutes in the TV's settings). */
+    private static boolean isClosest(int option, int current) {
+        if (current <= 0) return false;
+        int best = -1, bestDiff = Integer.MAX_VALUE;
+        for (int m : SystemTweaks.SCREENSAVER_MINUTES) {
+            if (m == 0) continue;
+            int d = Math.abs(m - current);
+            if (d < bestDiff) {
+                bestDiff = d;
+                best = m;
+            }
+        }
+        return best == option && best != current;
+    }
+
+    // ---- performance -----------------------------------------------------------------------------
+
+    private void buildPerformance() {
+        sectionHint.setText(R.string.performance_hint);
+        View memory = act.getLayoutInflater().inflate(R.layout.item_memory, rows, false);
+        memory.setId(View.generateViewId());
+        rows.addView(memory);
+        Runnable refresh = () -> showMemory(memory);
+        refresh.run();
+        memory.setOnClickListener(v -> refresh.run());
+
+        View free = addAction(R.drawable.ic_performance, act.getString(R.string.free_memory));
+        // A flag rather than setEnabled(false): a disabled row drops focus, which would jump to the sidebar.
+        final boolean[] busy = {false};
+        free.setOnClickListener(v -> {
+            if (busy[0]) return;
+            busy[0] = true;
+            final long before = SystemTweaks.memory(act).availMem;
+            new Thread(() -> {
+                SystemTweaks.killBackgroundApps(act);
+                handler.postDelayed(() -> {
+                    long after = SystemTweaks.memory(act).availMem;
+                    long freed = Math.max(0, after - before);
+                    Toast.makeText(act, act.getString(R.string.memory_freed,
+                            Formatter.formatShortFileSize(act, freed)), Toast.LENGTH_SHORT).show();
+                    refresh.run();
+                    busy[0] = false;
+                }, 1200);
+            }, "free-memory").start();
+        });
+
+        addHeader(act.getString(R.string.launcher_header));
+        View anim = addOption(act.getString(R.string.launcher_animations), Prefs.animations(act));
+        anim.setOnClickListener(v -> {
+            boolean on = !Prefs.animations(act);
+            Prefs.setAnimations(act, on);
+            setChecked(anim, on);
+            host.onAnimationsChanged();
+        });
+        View blur = addOption(act.getString(R.string.blur_effects), Prefs.blur(act));
+        blur.setOnClickListener(v -> {
+            boolean on = !Prefs.blur(act);
+            Prefs.setBlur(act, on);
+            setChecked(blur, on);
+            host.onBlurChanged();
+        });
+
+        addHeader(act.getString(R.string.system_animations_header));
+        float scale = SystemTweaks.animationScale(act);
+        int[] names = {R.string.system_animations_normal, R.string.system_animations_fast, R.string.system_animations_off};
+        final List<View> options = new ArrayList<>();
+        for (int i = 0; i < SystemTweaks.ANIMATION_SCALES.length; i++) {
+            final float s = SystemTweaks.ANIMATION_SCALES[i];
+            View row = addOption(act.getString(names[i]), Math.abs(scale - s) < 0.01f);
+            options.add(row);
+            row.setOnClickListener(v -> {
+                if (!SystemTweaks.setAnimationScale(act, s)) {
+                    Toast.makeText(act, R.string.needs_grant, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                for (int j = 0; j < options.size(); j++) setChecked(options.get(j), SystemTweaks.ANIMATION_SCALES[j] == s);
+            });
+        }
+    }
+
+    private void showMemory(View row) {
+        ActivityManager.MemoryInfo info = SystemTweaks.memory(act);
+        long used = info.totalMem - info.availMem;
+        TextView text = row.findViewById(R.id.memoryText);
+        text.setText(act.getString(R.string.memory_usage,
+                Formatter.formatShortFileSize(act, used),
+                Formatter.formatShortFileSize(act, info.totalMem),
+                Formatter.formatShortFileSize(act, info.availMem)));
+        ProgressBar bar = row.findViewById(R.id.memoryBar);
+        bar.setProgress(info.totalMem > 0 ? (int) (used * 100 / info.totalMem) : 0);
+    }
+
     private void buildTv() {
         sectionHint.setText(R.string.tv_settings_hint);
-        View row = newRow(rows, R.drawable.input_row_bg);
-        ((ImageView) row.findViewById(R.id.icon)).setImageResource(R.drawable.ic_settings);
-        ((TextView) row.findViewById(R.id.title)).setText(R.string.open_tv_settings);
+        View row = addAction(R.drawable.ic_settings, act.getString(R.string.open_tv_settings));
         row.setOnClickListener(v -> {
             dialog.dismiss();
             host.openTvSettings();
         });
-        rows.addView(row);
     }
 
     // ---- rows ------------------------------------------------------------------------------------
@@ -329,6 +643,41 @@ final class SettingsDialog {
         setChecked(row, checked);
         rows.addView(row);
         return row;
+    }
+
+    /** A row that does something, with a leading icon. */
+    private View addAction(int icon, String title) {
+        View row = newRow(rows, R.drawable.input_row_bg);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(icon);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        rows.addView(row);
+        return row;
+    }
+
+    /** An app row: its icon and name. */
+    private View appRow(AppAdapter.Entry e) {
+        View row = newRow(rows, R.drawable.input_row_bg);
+        ImageView icon = row.findViewById(R.id.icon);
+        icon.setImageTintList(null);
+        icon.setImageDrawable(e.icon);
+        sizeIcon(icon, 28, 28);
+        ((TextView) row.findViewById(R.id.title)).setText(e.label);
+        rows.addView(row);
+        return row;
+    }
+
+    /** A small caption between groups of rows; not focusable. */
+    private void addHeader(String text) {
+        TextView h = new TextView(act);
+        h.setText(text);
+        h.setAllCaps(true);
+        h.setLetterSpacing(0.14f);
+        h.setTextSize(11f);
+        h.setTextColor(0x8CFFFFFF);
+        h.setTypeface(act.getResources().getFont(R.font.outfit));
+        h.setPadding((int) (12 * density), (int) (14 * density), (int) (12 * density), (int) (6 * density));
+        h.setFocusable(false);
+        rows.addView(h);
     }
 
     private static void setChecked(View row, boolean checked) {

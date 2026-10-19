@@ -7,23 +7,32 @@ import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /** Launcher settings chosen in the settings dialog, with the defaults from res/values/config.xml. */
 final class Prefs {
 
     static final String LANG_SYSTEM = "";
-    static final String DOCK_SOLID = "solid";
-    static final String DOCK_BLUR = "blur";
-    /** Dock slots; the dock always shows this many apps. */
+    /** Dock slots; the dock always shows this many apps, whatever the grid's column count. */
     static final int DOCK_MAX = 4;
+    static final int[] COLUMN_CHOICES = {3, 4, 5};
+    static final int[] DIM_CHOICES = {0, 20, 40, 60};
 
     private static final String FILE = "tvhome";
     private static final String KEY_LANG = "lang";
     private static final String KEY_DOCK_APPS = "dock_apps";
-    private static final String KEY_DOCK_STYLE = "dock_style";
+    private static final String KEY_HIDDEN = "hidden_apps";
+    private static final String KEY_ORDER = "app_order";
+    private static final String KEY_COLUMNS = "columns";
+    private static final String KEY_DIM = "wallpaper_dim";
     private static final String KEY_WALLPAPER = "wallpaper";
+    private static final String KEY_BLUR = "blur";
+    private static final String KEY_ANIMATIONS = "animations";
+    /** Older builds stored the dock look as "solid" or "blur"; read once as the default for KEY_BLUR. */
+    private static final String KEY_LEGACY_DOCK_STYLE = "dock_style";
 
     private Prefs() {
     }
@@ -58,19 +67,15 @@ final class Prefs {
         return base.createConfigurationContext(config);
     }
 
-    // ---- dock ------------------------------------------------------------------------------------
+    // ---- dock and app list -----------------------------------------------------------------------
 
     /** Dock packages in order: the user's choice, or config.xml's dock_apps until they pick some. */
     static List<String> dockApps(Context ctx) {
         String saved = sp(ctx).getString(KEY_DOCK_APPS, null);
-        if (saved == null) {
-            return new ArrayList<>(Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps)));
-        }
-        List<String> out = new ArrayList<>();
-        for (String p : saved.split(",")) {
-            if (!p.trim().isEmpty() && out.size() < DOCK_MAX) out.add(p.trim());
-        }
-        return out;
+        List<String> out = saved == null
+                ? new ArrayList<>(Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps)))
+                : split(saved);
+        return out.size() > DOCK_MAX ? new ArrayList<>(out.subList(0, DOCK_MAX)) : out;
     }
 
     static void setDockApps(Context ctx, List<String> pkgs) {
@@ -81,15 +86,50 @@ final class Prefs {
         sp(ctx).edit().remove(KEY_DOCK_APPS).apply();
     }
 
-    static String dockStyle(Context ctx) {
-        return sp(ctx).getString(KEY_DOCK_STYLE, DOCK_SOLID);
+    /** Packages never shown as tiles: chosen in settings, or config.xml's hidden_apps by default. */
+    static Set<String> hiddenApps(Context ctx) {
+        String saved = sp(ctx).getString(KEY_HIDDEN, null);
+        return new LinkedHashSet<>(saved == null
+                ? Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps))
+                : split(saved));
     }
 
-    static void setDockStyle(Context ctx, String style) {
-        sp(ctx).edit().putString(KEY_DOCK_STYLE, style).apply();
+    static void setHiddenApps(Context ctx, Set<String> pkgs) {
+        sp(ctx).edit().putString(KEY_HIDDEN, TextUtils.join(",", pkgs)).apply();
     }
 
-    // ---- wallpaper -------------------------------------------------------------------------------
+    /** Grid order picked in settings; apps not in it follow alphabetically. */
+    static List<String> appOrder(Context ctx) {
+        return split(sp(ctx).getString(KEY_ORDER, ""));
+    }
+
+    static void setAppOrder(Context ctx, List<String> pkgs) {
+        sp(ctx).edit().putString(KEY_ORDER, TextUtils.join(",", pkgs)).apply();
+    }
+
+    static void resetAppOrder(Context ctx) {
+        sp(ctx).edit().remove(KEY_ORDER).apply();
+    }
+
+    // ---- look ------------------------------------------------------------------------------------
+
+    static int columns(Context ctx) {
+        int def = Math.max(1, ctx.getResources().getInteger(R.integer.columns));
+        return sp(ctx).getInt(KEY_COLUMNS, def);
+    }
+
+    static void setColumns(Context ctx, int columns) {
+        sp(ctx).edit().putInt(KEY_COLUMNS, columns).apply();
+    }
+
+    /** How much to darken the wallpaper, 0–100. */
+    static int wallpaperDim(Context ctx) {
+        return sp(ctx).getInt(KEY_DIM, 0);
+    }
+
+    static void setWallpaperDim(Context ctx, int percent) {
+        sp(ctx).edit().putInt(KEY_DIM, percent).apply();
+    }
 
     /** File name in assets/wallpapers, or "" for none (the black background with the ambient glow). */
     static String wallpaper(Context ctx) {
@@ -98,5 +138,36 @@ final class Prefs {
 
     static void setWallpaper(Context ctx, String name) {
         sp(ctx).edit().putString(KEY_WALLPAPER, name).apply();
+    }
+
+    // ---- performance -----------------------------------------------------------------------------
+
+    /** Frosted dock and blurred background behind menus. Off: solid dock, plain dimming. */
+    static boolean blur(Context ctx) {
+        SharedPreferences sp = sp(ctx);
+        if (sp.contains(KEY_BLUR)) return sp.getBoolean(KEY_BLUR, true);
+        return !"solid".equals(sp.getString(KEY_LEGACY_DOCK_STYLE, "blur"));
+    }
+
+    static void setBlur(Context ctx, boolean on) {
+        sp(ctx).edit().putBoolean(KEY_BLUR, on).remove(KEY_LEGACY_DOCK_STYLE).apply();
+    }
+
+    /** The launcher's own motion: springs, scaling, fades. */
+    static boolean animations(Context ctx) {
+        return sp(ctx).getBoolean(KEY_ANIMATIONS, true);
+    }
+
+    static void setAnimations(Context ctx, boolean on) {
+        sp(ctx).edit().putBoolean(KEY_ANIMATIONS, on).apply();
+    }
+
+    private static List<String> split(String joined) {
+        List<String> out = new ArrayList<>();
+        for (String p : joined.split(",")) {
+            String t = p.trim();
+            if (!t.isEmpty() && !out.contains(t)) out.add(t);
+        }
+        return out;
     }
 }

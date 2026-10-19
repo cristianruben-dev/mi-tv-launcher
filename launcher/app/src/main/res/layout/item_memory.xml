@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Performance: memory in use, as text and a bar. OK refreshes it. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="12dp"
+    android:background="@drawable/input_row_bg"
+    android:focusable="true"
+    android:clickable="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/memory_title"
+        android:textColor="@drawable/pill_text"
+        android:duplicateParentState="true"
+        android:textSize="15sp"
+        android:fontFamily="@font/outfit"
+        android:fontVariationSettings="'wght' 500" />
+
+    <TextView
+        android:id="@+id/memoryText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@drawable/pill_text_dim"
+        android:duplicateParentState="true"
+        android:textSize="13sp"
+        android:fontFamily="@font/outfit" />
+
+    <ProgressBar
+        android:id="@+id/memoryBar"
+        style="@android:style/Widget.Material.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progressDrawable="@drawable/memory_bar"
+        android:duplicateParentState="true" />
+</LinearLayout>

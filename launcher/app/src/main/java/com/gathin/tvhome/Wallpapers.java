@@ -63,19 +63,7 @@ final class Wallpapers {
 
     /** A soft, low-resolution copy of the wallpaper for the dock's frosted glass. */
     static Bitmap blurred(Bitmap src) {
-        if (src == null) return null;
-        int w = Math.max(8, src.getWidth() / BLUR_DOWNSCALE);
-        int h = Math.max(8, src.getHeight() / BLUR_DOWNSCALE);
-        Bitmap small = Bitmap.createScaledBitmap(src, w, h, true).copy(Bitmap.Config.ARGB_8888, true);
-        int[] px = new int[w * h];
-        small.getPixels(px, 0, w, 0, 0, w, h);
-        // Three box blur passes approximate a gaussian.
-        for (int i = 0; i < 3; i++) {
-            boxBlur(px, w, h, 3, true);
-            boxBlur(px, w, h, 3, false);
-        }
-        small.setPixels(px, 0, w, 0, 0, w, h);
-        return small;
+        return Blur.scaledBlur(src, BLUR_DOWNSCALE);
     }
 
     private static Bitmap decode(Context ctx, String file, int reqW, int reqH, Bitmap.Config config) {
@@ -106,40 +94,5 @@ final class Wallpapers {
         } catch (IOException | OutOfMemoryError e) {
             return null;
         }
-    }
-
-    /** One horizontal or vertical box blur pass over ARGB pixels, edges clamped. */
-    private static void boxBlur(int[] px, int w, int h, int r, boolean horizontal) {
-        int len = horizontal ? w : h, lines = horizontal ? h : w;
-        int[] out = new int[len];
-        int div = 2 * r + 1;
-        for (int line = 0; line < lines; line++) {
-            int sa = 0, sr = 0, sg = 0, sb = 0;
-            for (int i = -r; i <= r; i++) {
-                int p = px[index(clamp(i, len), line, w, horizontal)];
-                sa += p >>> 24;
-                sr += (p >> 16) & 0xFF;
-                sg += (p >> 8) & 0xFF;
-                sb += p & 0xFF;
-            }
-            for (int i = 0; i < len; i++) {
-                out[i] = (sa / div) << 24 | (sr / div) << 16 | (sg / div) << 8 | (sb / div);
-                int pOut = px[index(clamp(i - r, len), line, w, horizontal)];
-                int pIn = px[index(clamp(i + r + 1, len), line, w, horizontal)];
-                sa += (pIn >>> 24) - (pOut >>> 24);
-                sr += ((pIn >> 16) & 0xFF) - ((pOut >> 16) & 0xFF);
-                sg += ((pIn >> 8) & 0xFF) - ((pOut >> 8) & 0xFF);
-                sb += (pIn & 0xFF) - (pOut & 0xFF);
-            }
-            for (int i = 0; i < len; i++) px[index(i, line, w, horizontal)] = out[i];
-        }
-    }
-
-    private static int clamp(int i, int len) {
-        return i < 0 ? 0 : (i >= len ? len - 1 : i);
-    }
-
-    private static int index(int i, int line, int w, boolean horizontal) {
-        return horizontal ? line * w + i : i * w + line;
     }
 }
