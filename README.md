@@ -1,259 +1,183 @@
-# tv-vibehack
+# tv-vibehack · Mi TV sin anuncios
 
-**Your TV, minus the ads.**
+Launcher ligero tipo Apple TV para Android TV, con ajustes propios, y un script para quitar el
+bloatware por adb. Está probado en una **Xiaomi Mi TV (MiTV_MOOR6, Android TV 11, 1,8 GB de RAM)**.
 
-Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
-screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled,
-and a one-line restore if you change your mind.
+Es un fork de [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack). El README original
+(en inglés, con el método completo de debloat para otras marcas) está en
+[`docs/README-original.md`](docs/README-original.md).
 
-![Before: stock Google TV home with a sponsored ad. After: the tv-vibehack launcher](docs/stock-vs-new-side.jpg)
-
-It started as an afternoon fixing my parents' Mi TV, which showed them an advert before they
-could reach Netflix. The whole thing was done with Claude Code talking to the real TV, and the
-prompt that did it is in this repo so you can do the same with yours.
+![Pantalla de inicio](docs/screenshots/inicio.png)
 
 ---
 
-## Table of contents
+## Contenido
 
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [What you get](#what-you-get)
-- [Supported TVs](#supported-tvs)
-- [Doing it by hand](#doing-it-by-hand)
-- [The launcher](#the-launcher)
-- [Troubleshooting](#troubleshooting)
-- [Questions people ask](#questions-people-ask)
-- [Contributing](#contributing)
-- [Licence](#licence)
+- [Capturas](#capturas)
+- [Qué añade este fork](#qué-añade-este-fork)
+- [Fondos de pantalla](#fondos-de-pantalla)
+- [Compilar e instalar](#compilar-e-instalar)
+- [Quitar el bloatware](#quitar-el-bloatware)
+- [Estructura del código](#estructura-del-código)
+- [Notas](#notas)
+- [Créditos y licencia](#créditos-y-licencia)
 
 ---
 
-## How it works
+## Capturas
 
-Android TVs have the same debug bridge as Android phones. Once you switch on USB debugging in the
-TV's developer options, the TV listens on your Wi-Fi and asks you once to allow your computer.
-After that, everything is standard Android tooling:
+Capturas tomadas en la TV con `adb shell screencap`. El fondo multicolor es una imagen de prueba
+generada para comprobar el blur; no se incluye en la app.
 
-1. **Back up** the list of installed packages and settings.
-2. **Disable** the manufacturer's telemetry, ad services, content rows and preloaded junk with
-   `pm disable-user`. Nothing is uninstalled, so a restore script can undo every step.
-3. **Install** a small native launcher and make it the default home screen.
-
-The bloat differs by brand, which is why the prompt asks your coding assistant to discover it
-on your TV and ask you before touching anything you might use.
-
-## Quick start
-
-You need a computer on the same Wi-Fi as the TV and a coding assistant with shell access
-(Claude Code, or anything similar).
-
-**1. On the TV**
-Settings → Device Preferences → About → press OK on **Build** seven times → go back →
-Developer options → turn on **USB debugging**. Some TVs also show a Network or ADB debugging
-toggle; turn it on too. Keep the TV switched on.
-
-**2. On your computer**
-Open your assistant, paste the prompt from [`PROMPT.md`](PROMPT.md), and fill in your TV model.
-
-**3. Follow along**
-Accept the "Allow USB debugging?" prompt when it appears on the TV, then answer the checklist
-questions: which streaming apps you use, which four go in the dock, whether to keep the voice
-assistant, Chromecast and firmware updates.
-
-That's it. The assistant backs up, debloats, builds and installs the launcher, and checks every
-step with screenshots pulled from the TV. On a 1 GB Mi TV the whole thing took one afternoon the
-first time; with this repo as context, people report about fifteen minutes.
-
-## What you get
-
-A home screen that is yours again:
-
-- **Pitch-black background** and a dock of your four favourite apps at the bottom, in a lighter
-  rounded band, exactly where Apple TV puts it.
-- **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
-  taken from the app's own artwork.
-- **The rest of your apps in a grid** that slides up when you press Down.
-- **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
-  own border. The focused tile lifts slightly and shows its name.
-- **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
-  network you're on) and Settings.
-- **A greeting, a large thin clock and the date**, set in
-  [Outfit](https://fonts.google.com/specimen/Outfit).
-- **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
-
-And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
-phoning home, no apps you never asked for.
-
-## Supported TVs
-
-Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
-Realme, Nvidia Shield and most others.
-
-Not supported: Samsung (Tizen), LG (webOS) and Amazon Fire TV. They run different systems or
-won't let a third-party launcher take over Home.
-
-Lists that people have tested and contributed live in [`examples/`](examples/):
-
-| TV | OS |
+| Inicio | Fondo de pantalla + dock con blur |
 |---|---|
-| Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 |
-| Xiaomi MiTV-AXSO0 | Android TV 9 |
-| TCL 55" 4K Google TV, 2023 (G10) | Google TV 12 |
-| SANYO ATV R2 | Android TV 9 |
-| OnePlus TV (D00) | Google TV 14 |
+| ![Inicio con el dock sólido](docs/screenshots/inicio.png) | ![Inicio con fondo y dock esmerilado](docs/screenshots/inicio-fondo-blur.png) |
 
-Your TV not here? The prompt works regardless, it discovers the bloat itself. If you add your
-list afterwards, the next person with your model skips that step. See
-[Contributing](#contributing).
-
-## Doing it by hand
-
-Everything the assistant does, you can run yourself. The tools need Python 3 and nothing else.
-
-```bash
-python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
-export TV_HOST=192.168.1.50                                   # your TV's IP address
-
-tools/venv/bin/python -I tools/tv.py --probe                 # model, Android version, firmware
-tools/venv/bin/python -I tools/tv.py 'pm list packages'      # run one shell command on the TV
-printf 'cmd1\ncmd2\n' | tools/venv/bin/python -I tools/tv.py --batch   # several, one connection
-
-tools/disable.sh examples/xiaomi-mi-tv-4a/debloat.txt        # apply a debloat list
-tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it and restore the stock launcher
-```
-
-| Tool | What it does |
+| Cuadrícula con desvanecido superior | Ajustes: apps del dock |
 |---|---|
-| [`tools/tv.py`](tools/tv.py) | A pure-Python ADB client: shell, batch, push, pull. Works where the stock `adb` binary is blocked. |
-| [`tools/b64push.py`](tools/b64push.py) | Uploads larger files such as APKs as base64 chunks and verifies the checksum. |
-| [`tools/disable.sh`](tools/disable.sh) / [`tools/restore.sh`](tools/restore.sh) | Apply or undo a debloat list. PowerShell versions sit next to them. |
+| ![Las apps se desvanecen bajo la barra superior](docs/screenshots/cuadricula-desvanecido.png) | ![Selector de las 4 apps del dock](docs/screenshots/ajustes-apps-dock.png) |
 
-### Windows
+| Ajustes: fondo de pantalla | Ajustes en inglés |
+|---|---|
+| ![Selector de fondo con miniaturas](docs/screenshots/ajustes-fondo.png) | ![Modal de ajustes en inglés](docs/screenshots/ajustes-ingles.png) |
 
-The PowerShell scripts work without WSL or Git Bash. With Android Studio installed nothing else
-is needed: the install script uses Android Studio's bundled JDK and the default SDK location.
+## Qué añade este fork
 
-```powershell
-python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt
-powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
-powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
-powershell -ExecutionPolicy Bypass -File tools\restore.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
+Todo se configura desde el botón **Ajustes** de la barra superior, que abre un modal con barra
+lateral y el mismo estilo de vidrio que el menú de Entradas.
+
+| Sección | Qué hace |
+|---|---|
+| **Idioma** | Inglés, español, o el idioma de la TV. Cambia textos, saludo y fecha al momento. |
+| **Apps del dock** | Elige hasta 4 apps y su orden (se numeran 1–4). Incluye "Restaurar apps predeterminadas". |
+| **Apariencia** | El fondo del dock es **sólido** o **vidrio esmerilado (blur)**. |
+| **Fondo de pantalla** | Elige un fondo incluido en la app, con miniatura, o **Ninguno** para el negro con brillo de color. |
+| **Ajustes de la TV** | Abre los ajustes de Android (imagen, sonido, red…). |
+
+Otros cambios en la pantalla de inicio:
+
+- **Desvanecido superior.** Al bajar a la cuadrícula, las apps se desvanecen bajo la barra de la hora
+  y los botones en vez de cortarse de golpe. Con fondo de pantalla, la barra lleva además un degradado
+  oscuro que sube hacia la parte de arriba.
+- **Brillo de color en todas las apps.** Antes solo las apps del dock teñían el fondo con su color;
+  ahora también lo hacen las de la cuadrícula.
+- **Botones superiores con animación.** Al enfocarlos se escalan y suben un poco con un rebote
+  suave; al pulsarlos se hunden y rebotan antes de abrir.
+
+Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valores por defecto
+(dock inicial, apps ocultas, app de TV en vivo, columnas) siguen en
+[`config.xml`](launcher/app/src/main/res/values/config.xml).
+
+## Fondos de pantalla
+
+Los fondos van dentro de la app, en:
+
+```
+launcher/app/src/main/assets/wallpapers/
 ```
 
-The install script stops before touching the stock launcher if the install or the home-screen
-switch fails. Git Bash also works; the `.sh` scripts detect a Windows venv and disable MSYS path
-rewriting themselves.
+- Formatos: `.jpg`, `.jpeg`, `.png` o `.webp`.
+- El nombre del archivo es el título en los ajustes: `playa_azul-2.jpg` aparece como "Playa azul 2".
+- Tamaño recomendado: 1920 × 1080. Si es más grande se reduce al cargarlo, para ahorrar memoria.
+- Después de añadir o quitar imágenes, vuelve a compilar e instalar.
 
-## The launcher
+Sin imágenes en la carpeta, la sección muestra solo **Ninguno** y un aviso.
 
-A small native Android TV app (`com.gathin.tvhome`, about 1.6 MB), written in plain Java with
-AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
-video, no network, no background services.
+## Compilar e instalar
 
-**Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
-the dock order, apps to hide, your TV's Live TV package, and the number of columns.
-
-**Build and install** with one command:
+Requisitos en macOS (Homebrew):
 
 ```bash
-TV_HOST=192.168.1.50 launcher/build-and-install.sh
+brew install openjdk@17 android-commandlinetools android-platform-tools
 ```
 
-It needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
-
 ```bash
-brew install openjdk@17 android-commandlinetools
 sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
-Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_home` and an SDK in
-`~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleRelease`)
-is smaller and faster on 1 GB sets; sign it yourself before installing.
-
-**Navigation** is deliberate: Up and Down move exactly one row, Up from the dock goes to the top
-buttons, the ends of the button row don't fall through to tiles, and the last focused app is
-remembered when you come back, even after the app list changes.
-
-<details>
-<summary><strong>Optional: the Clock screensaver</strong></summary>
-
-A large thin clock and the date over an ambient glow, in the launcher's style. Every minute the
-clock drifts to a new spot and the glow shifts colour. The system runs it only while the TV is
-idle. Turn it on over ADB, or pick "Clock" in the TV's screensaver settings:
+Compilar el APK (desde la carpeta `launcher/`):
 
 ```bash
-tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'
+JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/opt/homebrew/share/android-commandlinetools ./gradlew assembleDebug
 ```
 
-It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
-</details>
+Activa la **depuración de red** en la TV (Opciones de desarrollador) y conéctate. Cambia la IP por la
+de tu TV:
 
-## Troubleshooting
+```bash
+adb connect 192.168.1.198:5555
+```
 
-Things that bit us or contributors, so they don't bite you.
+Instala el launcher:
 
-**Connecting**
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-- **macOS: `adb connect` says "No route to host"** although the port is open. Recent macOS treats
-  the Google-signed `adb` as its own app under Local Network privacy and silently blocks it.
-  `tools/tv.py` avoids the binary entirely.
-- **No "wireless debugging" toggle** on some TVs, Xiaomi among them. USB debugging alone opens
-  network ADB on port 5555.
-- **Windows PowerShell 5.1 adds a byte-order mark** to text piped into a program, which turned the
-  first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
-- **Git Bash rewrites paths** like `/data/local/tmp` into Windows paths. The scripts set
-  `MSYS_NO_PATHCONV=1` for you. Set `JAVA_HOME` and `ANDROID_HOME` before building there.
+Dale el permiso para leer el nombre del Wi-Fi:
 
-**Working on the TV**
+```bash
+adb shell pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION
+```
 
-- **Chained `pm` commands** (`pm disable a; pm disable b`) may silently stop after the first. Run
-  one per shell call; `--batch` does exactly that.
-- **Large pushes hang** through the Python client. Use `tools/b64push.py` for APKs.
-- **Screenshots come out empty** while Live TV or an HDMI input is on screen, seen on TCL. Press
-  Home before `screencap`.
-- **Disable the stock launcher only after the new one is installed**, or the Home button lands on
-  a factory test app.
-- **No on-screen keyboard** after switching launchers, seen on Xiaomi: the default input method
-  pointed at a Baidu keyboard that isn't installed. Fix:
-  `tools/tv.py 'ime set com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME'`
-- **Third-party launchers** often charge for basics like a custom wallpaper. That's why this repo
-  has its own.
+Ponlo como pantalla de inicio:
 
-## Questions people ask
+```bash
+adb shell cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity
+```
 
-**Is this safe? Can it brick the TV?**
-No. Nothing is flashed, rooted or deleted. Packages are disabled for the user profile, which
-lives in the data partition, not in the system image. The firmware is untouched. If something
-goes wrong, `tools/restore.sh` puts everything back, and even without the tools you can re-enable
-apps from the TV's own settings.
+## Quitar el bloatware
 
-**What about firmware updates?**
-Most lists disable the manufacturer's update service, so updates only arrive when you re-enable
-it on purpose. If an update does land, the worst case is that a package comes back enabled and
-you re-run the script.
+[`scripts/limpiar-mitv.sh`](scripts/limpiar-mitv.sh) quita para el usuario 0
+(`pm uninstall -k --user 0`) los paquetes de la lista: telemetría de Xiaomi y Google, filas de
+anuncios y recomendaciones, apps preinstaladas, casting, textos legales, protector de pantalla,
+autoinstalación, actualizaciones de firmware, búsqueda por voz y los launchers de fábrica. También pone
+las animaciones del sistema a 0.5 y deja este launcher como inicio. Antes de quitar los launchers de
+fábrica comprueba que este esté instalado.
 
-**Won't the apps break as their APIs change?**
-The streaming apps still update through the Play Store, which is left alone. The launcher
-doesn't talk to them; it lists what's installed and launches it, using Android launcher intents
-that have been stable for over a decade.
+```bash
+./scripts/limpiar-mitv.sh 192.168.1.198
+```
 
-**How did it get access? Isn't that a security hole?**
-Through the Android Debug Bridge, with one explicit "allow this computer" tap on the TV, the same
-as developing an Android app. The TV only trusts the key you approved. You can switch USB
-debugging off again afterwards and the launcher keeps working.
+Para recuperarlo todo:
 
-**Can I just download the launcher APK?**
-Build it yourself with the one-line script above; it takes about a minute and you control what
-goes on your TV. We don't publish prebuilt binaries.
+```bash
+./scripts/limpiar-mitv.sh 192.168.1.198 --restaurar
+```
 
-## Contributing
+No hace falta root ni se borra nada de la partición del sistema. Un restablecimiento de fábrica también
+devuelve todas las apps. La lista está pensada para la MiTV_MOOR6; revísala antes de usarla en otro
+modelo.
 
-The most useful contribution is your TV's debloat list, so the next person with that model
-doesn't have to rediscover it. Launcher improvements and sharper prompt wording are welcome too.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the format and the testing we ask for.
+> **Ojo:** la lista quita la búsqueda por voz (`com.google.android.katniss`) y las actualizaciones
+> de firmware (`com.xiaomi.mitv.updateservice`). Quita esas líneas del script si las quieres conservar.
 
-## Licence
+## Estructura del código
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+| Archivo | Qué hace |
+|---|---|
+| [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio, barra superior, brillo de color, fondo de pantalla y animación de los botones. |
+| [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | El modal de ajustes con barra lateral y sus secciones. |
+| [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
+| [`Wallpapers.java`](launcher/app/src/main/java/com/gathin/tvhome/Wallpapers.java) | Lista, carga y miniaturas de los fondos, y el blur por software. |
+| [`DockDecoration.java`](launcher/app/src/main/java/com/gathin/tvhome/DockDecoration.java) | Banda del dock: sólida o esmerilada con el fondo desenfocado. |
+| [`FadeFrame.java`](launcher/app/src/main/java/com/gathin/tvhome/FadeFrame.java) | Desvanece la cuadrícula en su borde superior. |
+| [`AppAdapter.java`](launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java) | Lista de apps; las 4 primeras son el dock. |
+
+Los textos están en `res/values/strings.xml` (inglés) y `res/values-es/strings.xml` (español).
+
+## Notas
+
+- **El blur es por software.** El blur nativo de Android (`RenderEffect`) necesita Android 12 y esta
+  TV tiene Android 11. El launcher desenfoca una copia pequeña del fondo una sola vez y la dibuja detrás
+  del dock. Sin fondo de pantalla, el modo esmerilado es una banda translúcida que deja ver el brillo
+  de color.
+- **Memoria.** El fondo se carga en RGB_565 y la copia desenfocada es 12 veces más pequeña, para no
+  pesar en TVs con poca RAM.
+- El launcher sigue sin permiso de Internet.
+
+## Créditos y licencia
+
+Basado en [tv-vibehack](https://github.com/Gathin23/tv-vibehack) de Gathin. MIT, ver
+[`LICENSE`](LICENSE). La tipografía Outfit usa la SIL Open Font License, ver
+[`launcher/FONT-LICENSE-OFL.txt`](launcher/FONT-LICENSE-OFL.txt).
