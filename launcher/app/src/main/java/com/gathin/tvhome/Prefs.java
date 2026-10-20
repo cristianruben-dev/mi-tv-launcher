@@ -25,6 +25,7 @@ final class Prefs {
     private static final String KEY_COLUMNS = "columns";
     private static final String KEY_WALLPAPER = "wallpaper";
     private static final String KEY_ANIMATIONS = "animations";
+    private static final String KEY_HOUSE_WIDGETS = "house_widgets";
     private static final String KEY_LIGHT_MODE = "light_mode";
     private static final String KEY_GLASS_OPACITY = "glass_opacity";
     private static final String KEY_APPEARANCE_AT = "appearance_at";
@@ -194,6 +195,15 @@ final class Prefs {
 
     static void setAnimations(Context ctx, boolean on) {
         sp(ctx).edit().putBoolean(KEY_ANIMATIONS, on).apply();
+    }
+
+    /** House Control's scenes and 3D home on the home screen (when the app is installed). On by default. */
+    static boolean houseWidgets(Context ctx) {
+        return sp(ctx).getBoolean(KEY_HOUSE_WIDGETS, true);
+    }
+
+    static void setHouseWidgets(Context ctx, boolean on) {
+        sp(ctx).edit().putBoolean(KEY_HOUSE_WIDGETS, on).apply();
     }
 
     // ---- clock, power on, sleep timer ------------------------------------------------------------

@@ -455,16 +455,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     // ---- House Control ---------------------------------------------------------------------------
 
-    /** Adds the house panel when House Control is installed, removes it when it is gone. */
+    /** Adds the house panel when House Control is installed and wanted, removes it when it is gone or hidden. */
     private void syncHouse() {
-        boolean installed = HousePanel.installed(this);
-        if (installed && house == null) {
+        boolean wanted = HousePanel.installed(this) && Prefs.houseWidgets(this);
+        if (wanted && house == null) {
             house = new HousePanel(this, this);
             house.setVisibility(View.INVISIBLE);
             // Above the home screen, below the tiles' glass.
             root.addView(house, root.indexOfChild(glass), new FrameLayout.LayoutParams(1, 1));
             root.post(this::placeHouse);
-        } else if (!installed && house != null) {
+        } else if (!wanted && house != null) {
             root.removeView(house);
             house = null;
         }
@@ -830,6 +830,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     @Override
     public void onAnimationsChanged() {
         Motion.enabled = Prefs.animations(this);
+    }
+
+    @Override
+    public void onHouseWidgetsChanged() {
+        syncHouse();
     }
 
     @Override

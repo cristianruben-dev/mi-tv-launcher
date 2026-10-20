@@ -61,6 +61,9 @@ final class SettingsDialog {
 
         void onAnimationsChanged();
 
+        /** House Control's widgets were shown or hidden. */
+        void onHouseWidgetsChanged();
+
         void onSleepTimerChanged();
 
         void previewScreensaver();
@@ -365,6 +368,16 @@ final class SettingsDialog {
         dark.setOnClickListener(v -> setMode(false));
         bright.setOnClickListener(v -> setMode(true));
         addGlassSlider();
+        if (HousePanel.installed(act)) {
+            addHeader(act.getString(R.string.house_widgets_header));
+            View widgets = addToggle(act.getString(R.string.house_widgets), Prefs.houseWidgets(act));
+            widgets.setOnClickListener(v -> {
+                boolean on = !Prefs.houseWidgets(act);
+                Prefs.setHouseWidgets(act, on);
+                setToggle(widgets, on);
+                host.onHouseWidgetsChanged();
+            });
+        }
         addHeader(act.getString(R.string.columns_header));
         final List<View> colRows = new ArrayList<>();
         for (int c : Prefs.COLUMN_CHOICES) {
