@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Full-screen settings rows: frosted when idle, white when focused, brighter while an app is carried. -->
+<!-- Full-screen settings rows: the launcher's glass when idle (Glass.java draws it), the focus colour when focused, brighter while an app is carried. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#F5FFFFFF" />
+            <solid android:color="@color/glass_focus" />
             <corners android:radius="14dp" />
         </shape>
     </item>
     <item android:state_activated="true">
         <shape android:shape="rectangle">
-            <solid android:color="#38FFFFFF" />
-            <stroke android:width="1dp" android:color="#66FFFFFF" />
+            <gradient android:angle="270" android:startColor="#52FFFFFF" android:endColor="#33FFFFFF" />
+            <stroke android:width="1dp" android:color="#6BFFFFFF" />
             <corners android:radius="14dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#1AFFFFFF" />
+            <gradient android:angle="270" android:startColor="#38FFFFFF" android:endColor="#1EFFFFFF" />
+            <stroke android:width="1dp" android:color="#45FFFFFF" />
             <corners android:radius="14dp" />
         </shape>
     </item>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text and icons of a menu row: inverted while the row is focused (filled with menu_focus). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="@color/menu_focus_text" />
+    <item android:color="@color/menu_text" />
+</selector>

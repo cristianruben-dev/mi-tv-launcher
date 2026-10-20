@@ -21,7 +21,7 @@ import android.view.ViewGroup;
 final class Glass {
 
     private static boolean dark = true;
-    private static int opacity = 15;
+    private static int opacity = Prefs.GLASS_DEFAULT;
     /** Bumped on every change, so cached sheens know to rebuild. */
     private static int stamp;
 
@@ -74,7 +74,7 @@ final class Glass {
     /** As above; {@code whiteOnFocus} false keeps the glass when focused (the view draws its own focus edge). */
     static void apply(View v, float radiusPx, boolean whiteOnFocus) {
         v.setBackground(new Sheen(radiusPx, v.getResources().getDisplayMetrics().density, whiteOnFocus,
-                0xF5FFFFFF));
+                v.getContext().getColor(R.color.glass_focus)));
     }
 
     /** A vertical sheen for {@code rect}, from {@link #top} to {@link #bottom}. */

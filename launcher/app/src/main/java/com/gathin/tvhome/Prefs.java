@@ -15,19 +15,19 @@ import java.util.Set;
 /** Launcher settings chosen in the settings dialog, with the defaults from res/values/config.xml. */
 final class Prefs {
 
-    static final String LANG_SYSTEM = "";
     /** Grid columns offered in settings; the dock has one slot per column. */
     static final int[] COLUMN_CHOICES = {3, 4, 5, 6};
 
     private static final String FILE = "tvhome";
-    private static final String KEY_LANG = "lang";
     private static final String KEY_DOCK_APPS = "dock_apps";
     private static final String KEY_HIDDEN = "hidden_apps";
     private static final String KEY_ORDER = "app_order";
     private static final String KEY_COLUMNS = "columns";
     private static final String KEY_WALLPAPER = "wallpaper";
-    private static final String KEY_BLUR = "blur";
     private static final String KEY_ANIMATIONS = "animations";
+    private static final String KEY_LIGHT_MODE = "light_mode";
+    private static final String KEY_GLASS_OPACITY = "glass_opacity";
+    private static final String KEY_APPEARANCE_AT = "appearance_at";
     private static final String KEY_TIME_FORMAT = "time_format";
     private static final String KEY_POWER_ON_INPUT = "power_on_input";
     private static final String KEY_SLEEP_AT = "sleep_at";
@@ -53,26 +53,54 @@ final class Prefs {
         return ctx.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
-    // ---- language --------------------------------------------------------------------------------
+    /** Glass opacity choices (Settings → Home screen), in percent: how much the glass tints what is behind. */
+    static final int GLASS_MIN = 0, GLASS_MAX = 100, GLASS_STEP = 5, GLASS_DEFAULT = 15;
+    /** Light mode puts dark text on the glass: below this much white it would not read over a dark picture. */
+    static final int GLASS_MIN_LIGHT = 40;
 
-    /** "en", "es", or {@link #LANG_SYSTEM} to follow the TV's language. */
-    static String language(Context ctx) {
-        return sp(ctx).getString(KEY_LANG, LANG_SYSTEM);
+    /** The lowest opacity the slider offers in the current mode. */
+    static int glassMin(Context ctx) {
+        return lightMode(ctx) ? GLASS_MIN_LIGHT : GLASS_MIN;
     }
 
-    static void setLanguage(Context ctx, String lang) {
-        sp(ctx).edit().putString(KEY_LANG, lang).apply();
+    /** Light mode: white glass and light menus. Off (the default): dark glass and dark menus. */
+    static boolean lightMode(Context ctx) {
+        return sp(ctx).getBoolean(KEY_LIGHT_MODE, false);
     }
 
-    /** Wraps a base context so resources, TextClock and date formats use the chosen language. */
+    static void setLightMode(Context ctx, boolean on) {
+        sp(ctx).edit().putBoolean(KEY_LIGHT_MODE, on).putLong(KEY_APPEARANCE_AT, System.currentTimeMillis()).apply();
+    }
+
+    static int glassOpacity(Context ctx) {
+        int v = sp(ctx).getInt(KEY_GLASS_OPACITY, GLASS_DEFAULT);
+        return Math.max(glassMin(ctx), Math.min(GLASS_MAX, v));
+    }
+
+    static void setGlassOpacity(Context ctx, int percent) {
+        sp(ctx).edit().putInt(KEY_GLASS_OPACITY, percent).putLong(KEY_APPEARANCE_AT, System.currentTimeMillis()).apply();
+    }
+
+    /** When the mode or the opacity was last chosen here, so House Control keeps whichever choice is newer. */
+    static long appearanceAt(Context ctx) {
+        return sp(ctx).getLong(KEY_APPEARANCE_AT, 0L);
+    }
+
+    /**
+     * Wraps a base context in the chosen mode: night resources (values/) for dark mode, values-notnight/ for
+     * light mode, whatever the TV itself is set to.
+     */
+    static Context wrapMode(Context base) {
+        boolean light = base.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_LIGHT_MODE, false);
+        Configuration config = new Configuration(base.getResources().getConfiguration());
+        config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                | (light ? Configuration.UI_MODE_NIGHT_NO : Configuration.UI_MODE_NIGHT_YES);
+        return base.createConfigurationContext(config);
+    }
+
+    /** The app only speaks Spanish: resources, TextClock and date formats use it whatever the TV is set to. */
     static Context wrapLocale(Context base) {
-        String lang = base.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_LANG, LANG_SYSTEM);
-        if (TextUtils.isEmpty(lang)) {
-            // Back to the TV's language: undo a default left over from an earlier choice in this process.
-            Locale.setDefault(base.getResources().getConfiguration().getLocales().get(0));
-            return base;
-        }
-        Locale locale = new Locale(lang);
+        Locale locale = new Locale("es");
         Locale.setDefault(locale);
         Configuration config = new Configuration(base.getResources().getConfiguration());
         config.setLocale(locale);

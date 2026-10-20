@@ -126,7 +126,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
 
     @Override
     protected void attachBaseContext(Context base) {
-        super.attachBaseContext(Prefs.wrapLocale(base));
+        super.attachBaseContext(Prefs.wrapMode(Prefs.wrapLocale(base)));
     }
 
     @Override
@@ -135,6 +135,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         Motion.enabled = Prefs.animations(this);
+        Glass.configure(!Prefs.lightMode(this), Prefs.glassOpacity(this));
         liveTvPkg = getString(R.string.live_tv_package).trim();
 
         root = findViewById(R.id.root);
@@ -460,7 +461,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         if (installed && house == null) {
             house = new HousePanel(this, this);
             house.setVisibility(View.INVISIBLE);
-            // Above the home screen, below the tiles' glass and the menus' blurred backdrop.
+            // Above the home screen, below the tiles' glass.
             root.addView(house, root.indexOfChild(glass), new FrameLayout.LayoutParams(1, 1));
             root.post(this::placeHouse);
         } else if (!installed && house != null) {
@@ -826,8 +827,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
-    public void onLanguageChanged() {
-        reopenSettings = SettingsDialog.SECTION_GENERAL;
+    public void onModeChanged(int reopenSection) {
+        // The menus' colours are resources of the mode: recreate, and come back to the same settings.
+        reopenSettings = reopenSection;
         recreate();
     }
 

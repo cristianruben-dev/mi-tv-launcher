@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Solid menus (Inputs, Wi-Fi, the long press menu, the Control Center) in dark mode. values-notnight holds
+  light mode; MainActivity forces one or the other from Settings → Home screen → Appearance.
+-->
+<resources>
+    <color name="menu_top">#FF2A2A2E</color>
+    <color name="menu_bottom">#FF161618</color>
+    <color name="menu_rim">#33FFFFFF</color>
+    <color name="menu_text">#FFFFFFFF</color>
+    <color name="menu_text_soft">#B3FFFFFF</color>
+    <color name="menu_text_dim">#8CFFFFFF</color>
+    <!-- A focused row is filled with this, its text turns menu_focus_text; tiles and switches get a ring of it. -->
+    <color name="menu_focus">#F5FFFFFF</color>
+    <color name="menu_focus_text">#FF111111</color>
+    <color name="menu_tile">#24FFFFFF</color>
+    <color name="menu_tile_focused">#33FFFFFF</color>
+
+    <!-- The glass (Glass.java) when focused: a solid fill, its text, and the edge of views that keep their glass. -->
+    <color name="glass_focus">#F5FFFFFF</color>
+    <color name="glass_focus_text">#FF111111</color>
+    <color name="glass_focus_text_dim">#99111111</color>
+    <color name="glass_edge">#F2FFFFFF</color>
+
+    <!-- The active scene's warm glow, like a lit light: its wash, rim and glyph. -->
+    <color name="warm_top">#55FFC46B</color>
+    <color name="warm_bottom">#1FFFC46B</color>
+    <color name="warm_rim">#99FFC46B</color>
+    <color name="warm_glyph">#FFFFD08A</color>
+
+    <!-- Text on the glass, and text straight over the wallpaper (the clock, the greeting, settings captions). -->
+    <color name="glass_text">#FFFFFFFF</color>
+    <color name="glass_text_dim">#73FFFFFF</color>
+    <color name="on_wall">#FFFFFFFF</color>
+    <color name="on_wall_soft">#B3FFFFFF</color>
+    <color name="on_wall_dim">#8CFFFFFF</color>
+    <color name="on_wall_faint">#59FFFFFF</color>
+    <color name="on_wall_shadow">#B3000000</color>
+    <!-- Behind the top bar: darkens the top of the wallpaper for white text. -->
+    <color name="top_scrim_start">#B3000000</color>
+    <color name="top_scrim_center">#59000000</color>
+</resources>

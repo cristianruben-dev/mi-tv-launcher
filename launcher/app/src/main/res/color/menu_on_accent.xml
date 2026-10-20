@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icons and text that sit on the blue "on" fill when activated, and on the menu otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:color="#FFFFFFFF" />
+    <item android:color="@color/menu_text" />
+</selector>

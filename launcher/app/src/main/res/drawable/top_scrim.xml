@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Behind the top bar: darkens the top of a wallpaper and fades out, so the bar has no hard edge. -->
+<!-- Behind the top bar: darkens (lightens in light mode) the top of a wallpaper and fades out, so the bar has no hard edge. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient android:angle="270" android:startColor="#B3000000" android:centerColor="#59000000"
+    <gradient android:angle="270" android:startColor="@color/top_scrim_start" android:centerColor="@color/top_scrim_center"
         android:endColor="#00000000" />
 </shape>

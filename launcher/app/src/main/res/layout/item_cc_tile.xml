@@ -16,7 +16,7 @@
         android:id="@+id/icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:tint="#FFFFFFFF"
+        android:tint="@color/menu_text"
         android:duplicateParentState="true"
         android:contentDescription="@null" />
 
@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:textColor="#FFFFFFFF"
+        android:textColor="@color/menu_text"
         android:duplicateParentState="true"
         android:textSize="13sp"
         android:fontFamily="@font/outfit"
@@ -37,7 +37,7 @@
         android:id="@+id/status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#A6FFFFFF"
+        android:textColor="@color/menu_text_soft"
         android:duplicateParentState="true"
         android:textSize="11sp"
         android:fontFamily="@font/outfit"

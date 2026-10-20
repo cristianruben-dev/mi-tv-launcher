@@ -32,12 +32,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_title"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/on_wall"
             android:textSize="40sp"
             android:fontFamily="@font/outfit"
             android:fontVariationSettings="'wght' 500"
             android:letterSpacing="-0.02"
-            android:shadowColor="#B3000000"
+            android:shadowColor="@color/on_wall_shadow"
             android:shadowRadius="12"
             android:shadowDy="2"
             android:includeFontPadding="false" />
@@ -92,7 +92,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:layout_marginBottom="12dp"
-                    android:textColor="#D9FFFFFF"
+                    android:textColor="@color/on_wall"
                     android:textSize="15sp"
                     android:lineSpacingExtra="2dp"
                     android:fontFamily="@font/outfit" />

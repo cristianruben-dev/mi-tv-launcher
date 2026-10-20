@@ -53,12 +53,12 @@ final class SettingsDialog {
 
         void onWallpaperChanged();
 
+        /** Dark or light mode was chosen: the host recreates itself and may reopen this section. */
+        void onModeChanged(int reopenSection);
+
         void onAnimationsChanged();
 
         void onSleepTimerChanged();
-
-        /** The language changed: the host recreates itself and may reopen this section. */
-        void onLanguageChanged();
 
         void previewScreensaver();
 
@@ -96,8 +96,6 @@ final class SettingsDialog {
     private ImageView backdrop;
     private LinearLayout rows;
     private ScrollView scroll;
-    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
-    private static final int TEXT_SHADOW = 0xB3000000;
     private TextView sectionHint;
     /** Wallpaper section: the strip of wallpaper tiles, or null in other sections. */
     private LinearLayout strip;
@@ -154,7 +152,8 @@ final class SettingsDialog {
         rows = root.findViewById(R.id.rows);
         scroll = root.findViewById(R.id.scroll);
         sectionHint = root.findViewById(R.id.sectionHint);
-        sectionHint.setShadowLayer(6 * density, 0, density, TEXT_SHADOW);
+        // Captions sit straight over the wallpaper: a soft shadow of the opposite tone keeps them readable.
+        sectionHint.setShadowLayer(6 * density, 0, density, act.getColor(R.color.on_wall_shadow));
         fadeWhenScrolled(root.findViewById(R.id.sectionsScroll), root.findViewById(R.id.sectionsFrame));
         fadeWhenScrolled(scroll, root.findViewById(R.id.rowsFrame));
 
@@ -356,6 +355,12 @@ final class SettingsDialog {
 
     private void buildHome() {
         sectionHint.setText(R.string.home_hint);
+        addHeader(act.getString(R.string.appearance_header));
+        final boolean light = Prefs.lightMode(act);
+        View dark = addOption(act.getString(R.string.mode_dark), !light);
+        View bright = addOption(act.getString(R.string.mode_light), light);
+        dark.setOnClickListener(v -> setMode(false));
+        bright.setOnClickListener(v -> setMode(true));
         addHeader(act.getString(R.string.columns_header));
         final List<View> colRows = new ArrayList<>();
         for (int c : Prefs.COLUMN_CHOICES) {
@@ -381,6 +386,13 @@ final class SettingsDialog {
                 host.onTimeFormatChanged();
             });
         }
+    }
+
+    private void setMode(boolean light) {
+        if (light == Prefs.lightMode(act)) return;
+        Prefs.setLightMode(act, light);
+        dialog.dismiss();
+        host.onModeChanged(SECTION_HOME);
     }
 
     // ---- apps: dock, show/hide, order ------------------------------------------------------------
@@ -902,8 +914,8 @@ final class SettingsDialog {
         TextView h = new TextView(act);
         h.setText(text);
         h.setTextSize(15f);
-        h.setTextColor(0xCCFFFFFF);
-        h.setShadowLayer(6 * density, 0, density, TEXT_SHADOW);
+        h.setTextColor(act.getColor(R.color.on_wall_soft));
+        h.setShadowLayer(6 * density, 0, density, act.getColor(R.color.on_wall_shadow));
         h.setTypeface(act.getResources().getFont(R.font.outfit));
         h.setPadding((int) (6 * density), (int) (16 * density), (int) (6 * density), (int) (8 * density));
         h.setFocusable(false);

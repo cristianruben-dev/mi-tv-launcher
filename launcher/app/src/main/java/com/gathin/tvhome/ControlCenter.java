@@ -377,7 +377,7 @@ final class ControlCenter {
             }
             TextView choice = new TextView(act);
             choice.setText(Clocks.duration(act, m, offLabel));
-            choice.setTextColor(0xFFFFFFFF);
+            choice.setTextColor(act.getColorStateList(R.color.menu_on_accent));
             choice.setTextSize(14);
             choice.setTypeface(content.<TextView>findViewById(R.id.title).getTypeface());
             choice.setGravity(Gravity.CENTER);

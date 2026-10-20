@@ -16,7 +16,7 @@
         android:paddingEnd="12dp"
         android:paddingTop="8dp"
         android:paddingBottom="6dp"
-        android:textColor="#8CFFFFFF"
+        android:textColor="@color/menu_text_dim"
         android:textSize="12sp"
         android:fontFamily="@font/outfit"
         android:fontVariationSettings="'wght' 500"

@@ -20,7 +20,7 @@
             android:id="@+id/icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:tint="#FFFFFFFF"
+            android:tint="@color/menu_text"
             android:contentDescription="@null" />
 
         <TextView
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/menu_text"
             android:textSize="17sp"
             android:fontFamily="@font/outfit"
             android:fontVariationSettings="'wght' 500"

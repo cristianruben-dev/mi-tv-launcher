@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid menus in light mode; see values/colors.xml. -->
+<resources>
+    <color name="menu_top">#FFF8F8FA</color>
+    <color name="menu_bottom">#FFE9E9EE</color>
+    <color name="menu_rim">#1F000000</color>
+    <color name="menu_text">#FF1C1C1E</color>
+    <color name="menu_text_soft">#B31C1C1E</color>
+    <color name="menu_text_dim">#8C1C1C1E</color>
+    <color name="menu_focus">#FF1C1C1E</color>
+    <color name="menu_focus_text">#FFFFFFFF</color>
+    <color name="menu_tile">#14000000</color>
+    <color name="menu_tile_focused">#1F000000</color>
+
+    <!-- Light mode inverts focus, which white would not show on white glass. -->
+    <color name="glass_focus">#FF1C1C1E</color>
+    <color name="glass_focus_text">#FFFFFFFF</color>
+    <color name="glass_focus_text_dim">#B3FFFFFF</color>
+    <color name="glass_edge">#FF1C1C1E</color>
+
+    <!-- A deeper, stronger amber that still reads on white glass. -->
+    <color name="warm_top">#A6FFB547</color>
+    <color name="warm_bottom">#5CFFB547</color>
+    <color name="warm_rim">#FFE8901F</color>
+    <color name="warm_glyph">#FFC9780A</color>
+
+    <!-- Light mode: dark text, on glass that is at least 40 % white (Prefs.glassOpacity), and over the wallpaper. -->
+    <color name="glass_text">#FF1C1C1E</color>
+    <color name="glass_text_dim">#991C1C1E</color>
+    <color name="on_wall">#FF1C1C1E</color>
+    <color name="on_wall_soft">#BF1C1C1E</color>
+    <color name="on_wall_dim">#991C1C1E</color>
+    <color name="on_wall_faint">#731C1C1E</color>
+    <color name="on_wall_shadow">#99FFFFFF</color>
+    <color name="top_scrim_start">#99FFFFFF</color>
+    <color name="top_scrim_center">#40FFFFFF</color>
+</resources>
