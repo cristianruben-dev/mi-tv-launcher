@@ -53,8 +53,6 @@ final class SettingsDialog {
 
         void onWallpaperChanged();
 
-        void onBlurChanged();
-
         void onAnimationsChanged();
 
         void onSleepTimerChanged();
@@ -66,9 +64,6 @@ final class SettingsDialog {
 
         /** The wallpaper on the home screen right now, or null for none. */
         Bitmap wallpaperBitmap();
-
-        /** Its blurred copy, for frosted glass. */
-        Frost.Source wallpaperFrost();
     }
 
     static final int SECTION_GENERAL = 0;
@@ -99,13 +94,10 @@ final class SettingsDialog {
     private final List<View> sectionRows = new ArrayList<>();
     private Dialog dialog;
     private ImageView backdrop;
-    /** Darkens the frosted rows a little: they sit over the bright wallpaper. */
-    private static final int ROW_TINT = 0x4D000000;
-    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
-    private static final int TEXT_SHADOW = 0xB3000000;
-    private View page;
     private LinearLayout rows;
     private ScrollView scroll;
+    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
+    private static final int TEXT_SHADOW = 0xB3000000;
     private TextView sectionHint;
     /** Wallpaper section: the strip of wallpaper tiles, or null in other sections. */
     private LinearLayout strip;
@@ -113,10 +105,6 @@ final class SettingsDialog {
     private View entry;
     /** The wallpaper behind the settings: the home screen's, or the one just chosen. */
     private Bitmap homeBitmap;
-    /** Its blurred copy, for the frosted rows (null with blur off). */
-    private Bitmap homeSoft;
-    /** What the frosted rows blur right now: the wallpaper in use, or the one being previewed. */
-    private final Frost.Source frost = new Frost.Source();
     /** The section whose options are on the right. */
     private int current = -1;
     /** Bumped on every section switch so late loads land only in the section that asked. */
@@ -139,7 +127,6 @@ final class SettingsDialog {
     private String focusedKey;
     private String previewKey;
     private Bitmap previewFull;
-    private Bitmap previewSoft;
     private Runnable pendingPreview;
 
     SettingsDialog(Activity act, Host host) {
@@ -164,7 +151,6 @@ final class SettingsDialog {
         if (w != null) w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         backdrop = root.findViewById(R.id.backdrop);
-        page = root.findViewById(R.id.page);
         rows = root.findViewById(R.id.rows);
         scroll = root.findViewById(R.id.scroll);
         sectionHint = root.findViewById(R.id.sectionHint);
@@ -173,9 +159,7 @@ final class SettingsDialog {
         fadeWhenScrolled(scroll, root.findViewById(R.id.rowsFrame));
 
         homeBitmap = host.wallpaperBitmap();
-        homeSoft = host.wallpaperFrost().soft;
         backdrop.setImageBitmap(homeBitmap);
-        frost.copy(host.wallpaperFrost());
         if (homeBitmap == null) loadHomeWallpaper();   // the home screen is still decoding it (e.g. just recreated)
 
         LinearLayout sections = root.findViewById(R.id.sections);
@@ -216,16 +200,10 @@ final class SettingsDialog {
         else sectionRows.get(start).requestFocus();
     }
 
-    /**
-     * Fades the list out at its top and bottom edges, like the home grid, wherever there is more of it that
-     * way; and redraws its frosted rows, which show the part of the wallpaper behind where they are now.
-     */
+    /** Fades the list out at its top and bottom edges, like the home grid, wherever there is more of it that way. */
     private static void fadeWhenScrolled(ScrollView list, FadeFrame frame) {
         Runnable update = () -> frame.setFades(list.canScrollVertically(-1), list.canScrollVertically(1));
-        list.setOnScrollChangeListener((v, x, y, oldX, oldY) -> {
-            update.run();
-            Frost.invalidateAll(list);
-        });
+        list.setOnScrollChangeListener((v, x, y, oldX, oldY) -> update.run());
         // The content changes with every section: check again once it is laid out.
         list.getChildAt(0).addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> list.post(update));
         list.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> list.post(update));
@@ -242,8 +220,7 @@ final class SettingsDialog {
         rows.setAlpha(0f);
         rows.setTranslationX(16 * density);
         rows.animate().alpha(1f).translationX(0f).setDuration(Motion.ms(200))
-                .setInterpolator(new DecelerateInterpolator(1.6f))
-                .withEndAction(() -> Frost.invalidateAll(rows)).start();   // the glass follows the slide
+                .setInterpolator(new DecelerateInterpolator(1.6f)).start();
     }
 
     /** Back: leaves the options for the sections, then closes the settings. */
@@ -733,7 +710,7 @@ final class SettingsDialog {
     private void buildPerformance() {
         sectionHint.setText(R.string.performance_hint);
         View memory = act.getLayoutInflater().inflate(R.layout.item_memory, rows, false);
-        Frost.apply(memory, frost, 14 * density, ROW_TINT);
+        Glass.apply(memory, 14 * density);
         memory.setId(View.generateViewId());
         rows.addView(memory);
         Runnable refresh = () -> showMemory(memory);
@@ -768,14 +745,6 @@ final class SettingsDialog {
             setToggle(anim, on);
             host.onAnimationsChanged();
         });
-        View blur = addToggle(act.getString(R.string.blur_effects), Prefs.blur(act));
-        blur.setOnClickListener(v -> {
-            boolean on = !Prefs.blur(act);
-            Prefs.setBlur(act, on);
-            setToggle(blur, on);
-            refreshGlass();
-            host.onBlurChanged();
-        });
     }
 
     private void showMemory(View row) {
@@ -798,26 +767,17 @@ final class SettingsDialog {
         final int h = act.getResources().getDisplayMetrics().heightPixels;
         new Thread(() -> {
             Bitmap full = Wallpapers.load(act, key, w, h);
-            Bitmap soft = softOf(full);
             handler.post(() -> {
                 if (full == null || homeBitmap != null || !key.equals(Prefs.wallpaper(act))) return;
                 homeBitmap = full;
-                homeSoft = soft;
-                if (focusedKey == null) setBackdrop(full, soft);
+                if (focusedKey == null) setBackdrop(full);
             });
         }, "wallpaper-home").start();
     }
 
-    /** Puts a picture behind the settings, and its blurred copy behind the frosted rows. */
-    private void setBackdrop(Bitmap picture, Bitmap soft) {
+    /** Puts a picture behind the settings. */
+    private void setBackdrop(Bitmap picture) {
         backdrop.setImageBitmap(picture);
-        frost.set(soft, picture == null ? 0 : picture.getWidth(), picture == null ? 0 : picture.getHeight());
-        Frost.invalidateAll(page);
-    }
-
-    /** The blurred copy for the frosted rows, only when blur is on. */
-    private Bitmap softOf(Bitmap picture) {
-        return Prefs.blur(act) ? Frost.soften(picture) : null;
     }
 
     // ---- wallpaper preview -----------------------------------------------------------------------
@@ -831,22 +791,19 @@ final class SettingsDialog {
         final int gen = ++previewGen;
         if (pendingPreview != null) handler.removeCallbacks(pendingPreview);
         if (key.equals(previewKey) && previewFull != null) {
-            setBackdrop(previewFull, previewSoft);
+            setBackdrop(previewFull);
             return;
         }
-        Bitmap thumb = thumbs.get(key);
-        setBackdrop(thumb, softOf(thumb));
+        setBackdrop(thumbs.get(key));
         final int w = act.getResources().getDisplayMetrics().widthPixels;
         final int h = act.getResources().getDisplayMetrics().heightPixels;
         pendingPreview = () -> new Thread(() -> {
             Bitmap full = Wallpapers.load(act, key, w, h);
-            Bitmap soft = softOf(full);
             handler.post(() -> {
                 if (gen != previewGen || full == null) return;
                 previewKey = key;
                 previewFull = full;
-                previewSoft = soft;
-                setBackdrop(full, soft);
+                setBackdrop(full);
             });
         }, "wallpaper-preview").start();
         handler.postDelayed(pendingPreview, PREVIEW_DELAY_MS);
@@ -861,8 +818,7 @@ final class SettingsDialog {
         focusedKey = null;
         previewKey = null;
         previewFull = null;
-        previewSoft = null;
-        setBackdrop(homeBitmap, homeSoft);
+        setBackdrop(homeBitmap);
     }
 
     private void choose(String key) {
@@ -874,36 +830,19 @@ final class SettingsDialog {
         }
         if (key.equals(previewKey) && previewFull != null) {
             homeBitmap = previewFull;
-            homeSoft = previewSoft;
         } else {
             // Chosen before the full picture came in: keep the thumbnail for now and swap in the full one.
             homeBitmap = thumbs.get(key);
-            homeSoft = softOf(homeBitmap);
             final int w = act.getResources().getDisplayMetrics().widthPixels;
             final int h = act.getResources().getDisplayMetrics().heightPixels;
             new Thread(() -> {
                 Bitmap full = Wallpapers.load(act, key, w, h);
-                Bitmap soft = softOf(full);
                 handler.post(() -> {
                     if (full == null || !key.equals(Prefs.wallpaper(act))) return;
                     homeBitmap = full;
-                    homeSoft = soft;
-                    if (focusedKey == null || key.equals(focusedKey)) setBackdrop(full, soft);
+                    if (focusedKey == null || key.equals(focusedKey)) setBackdrop(full);
                 });
             }, "wallpaper-chosen").start();
-        }
-    }
-
-    /** Blur was switched: the rows trade their frosted and solid backgrounds. */
-    private void refreshGlass() {
-        List<View> all = new ArrayList<>(sectionRows);
-        for (int i = 0; i < rows.getChildCount(); i++) {
-            View v = rows.getChildAt(i);
-            if (v.isFocusable()) all.add(v);
-        }
-        for (View v : all) {
-            v.setBackgroundResource(R.drawable.settings_row_bg);
-            Frost.apply(v, frost, 14 * density, ROW_TINT);
         }
     }
 
@@ -912,7 +851,7 @@ final class SettingsDialog {
     private View newRow() {
         View row = act.getLayoutInflater().inflate(R.layout.item_setting, rows, false);
         row.setId(View.generateViewId());
-        Frost.apply(row, frost, 14 * density, ROW_TINT);
+        Glass.apply(row, 14 * density);
         return row;
     }
 

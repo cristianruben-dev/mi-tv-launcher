@@ -45,8 +45,6 @@ final class Prefs {
     static final String ROTATE_ON_POWER = "power_on";
     static final String ROTATE_HOURLY = "hourly";
     static final String ROTATE_DAILY = "daily";
-    /** Older builds stored the dock look as "solid" or "blur"; read once as the default for KEY_BLUR. */
-    private static final String KEY_LEGACY_DOCK_STYLE = "dock_style";
 
     private Prefs() {
     }
@@ -160,17 +158,6 @@ final class Prefs {
     }
 
     // ---- performance -----------------------------------------------------------------------------
-
-    /** Frosted dock and blurred background behind menus. Off: solid dock, plain dimming. */
-    static boolean blur(Context ctx) {
-        SharedPreferences sp = sp(ctx);
-        if (sp.contains(KEY_BLUR)) return sp.getBoolean(KEY_BLUR, true);
-        return !"solid".equals(sp.getString(KEY_LEGACY_DOCK_STYLE, "blur"));
-    }
-
-    static void setBlur(Context ctx, boolean on) {
-        sp(ctx).edit().putBoolean(KEY_BLUR, on).remove(KEY_LEGACY_DOCK_STYLE).apply();
-    }
 
     /** The launcher's own motion: springs, scaling, fades. */
     static boolean animations(Context ctx) {

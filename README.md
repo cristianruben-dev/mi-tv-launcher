@@ -34,11 +34,11 @@ Todas las pantallas del launcher, tomadas en la TV con `adb shell screencap`.
     <td width="50%" valign="top"><img src="docs/screenshots/02-cuadricula.jpg" alt="Cuadrícula"><br><b>Cuadrícula</b><br><sub>Al bajar, las apps se desvanecen bajo la barra superior.</sub></td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="docs/screenshots/03-menu-app.jpg" alt="Menú de una app"><br><b>Menú de una app</b><br><sub>Desplegable junto a la app; el resto se desenfoca.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/03-menu-app.jpg" alt="Menú de una app"><br><b>Menú de una app</b><br><sub>Desplegable junto a la app; el resto se oscurece.</sub></td>
     <td width="50%" valign="top"><img src="docs/screenshots/04-entradas.jpg" alt="Entradas"><br><b>Entradas</b><br><sub>HDMI, AV y TV en vivo.</sub></td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="docs/screenshots/05-ajustes-general.jpg" alt="Ajustes · General"><br><b>Ajustes · General</b><br><sub>Idioma y entrada al encender.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/05-ajustes-general.jpg" alt="Ajustes · General"><br><b>Ajustes · General</b><br><sub>Entrada al encender.</sub></td>
     <td width="50%" valign="top"><img src="docs/screenshots/06-ajustes-pantalla-inicio.jpg" alt="Ajustes · Pantalla de inicio"><br><b>Ajustes · Pantalla de inicio</b><br><sub>Columnas y formato de hora.</sub></td>
   </tr>
   <tr>
@@ -55,7 +55,7 @@ Todas las pantallas del launcher, tomadas en la TV con `adb shell screencap`.
   </tr>
   <tr>
     <td width="50%" valign="top"><img src="docs/screenshots/13-ajustes-apagado.jpg" alt="Ajustes · Apagado automático"><br><b>Ajustes · Apagado automático</b><br><sub>Apaga la TV pasado un tiempo.</sub></td>
-    <td width="50%" valign="top"><img src="docs/screenshots/14-ajustes-rendimiento.jpg" alt="Ajustes · Rendimiento"><br><b>Ajustes · Rendimiento</b><br><sub>Memoria, animaciones y blur.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/14-ajustes-rendimiento.jpg" alt="Ajustes · Rendimiento"><br><b>Ajustes · Rendimiento</b><br><sub>Memoria y animaciones.</sub></td>
   </tr>
   <tr>
     <td width="50%" valign="top"><img src="docs/screenshots/15-ajustes-tv.jpg" alt="Ajustes · Ajustes de la TV"><br><b>Ajustes · Ajustes de la TV</b><br><sub>Acceso a los ajustes de Android.</sub></td>
@@ -74,13 +74,13 @@ fila de fondos cada uno se ve detrás de los ajustes; OK lo usa, y si sales sin 
 
 | Sección | Qué hace |
 |---|---|
-| **General** | Idioma (inglés, español o el de la TV) y **entrada al encender**: pantalla de inicio, cualquier HDMI/AV o TV en vivo, con "Probar ahora". |
+| **General** | **Entrada al encender**: pantalla de inicio, cualquier HDMI/AV o TV en vivo, con "Probar ahora". |
 | **Pantalla de inicio** | Columnas (3, 4, 5 o 6): los iconos cambian de tamaño y el dock usa las mismas columnas. **Formato de hora**: como la TV, 12 o 24 horas (también en el protector). |
 | **Apps** | Tres modos: **Dock** (elige sus apps y su orden, una por columna), **Mostrar u ocultar** y **Ordenar** (toma una app con OK, muévela con arriba/abajo y suéltala con OK o Atrás). |
 | **Fondo de pantalla** | Una fila con los fondos incluidos, que se previsualizan detrás de los ajustes; OK elige. **Cambiar automáticamente**: cada vez que se enciende la TV, cada hora o cada día. |
 | **Protector de pantalla** | Empezar después de 5, 10, 15, 30 minutos o 1 hora, o desactivado. **Probar ahora** lo muestra al momento. |
 | **Apagado automático** | Apaga la TV en 15, 30, 45 minutos, 1 h, 1 h 30 o 2 h, aunque estés viendo algo. Avisa un minuto antes, y la hora de apagado se ve junto al reloj mientras está en marcha. |
-| **Rendimiento** | Memoria en uso con barra, **Liberar memoria**, animaciones del launcher y blur. |
+| **Rendimiento** | Memoria en uso con barra, **Liberar memoria** y animaciones del launcher. |
 
 Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valores por defecto
 (dock inicial, apps ocultas, app de TV en vivo, columnas) están en
@@ -89,8 +89,7 @@ Los ajustes se guardan en `SharedPreferences` y sobreviven a reinicios. Los valo
 ### Menú al mantener pulsada una app
 
 Mantén pulsado OK sobre cualquier app. Aparece un desplegable junto a ella, con el mismo estilo que
-el menú de Entradas (debajo de la app, o encima si no cabe). El resto del inicio se desenfoca y la app
-pulsada queda nítida. Opciones:
+el menú de Entradas (debajo de la app, o encima si no cabe). El resto del inicio se oscurece. Opciones:
 **Abrir**, **Mover al dock** / **Quitar del dock**, **Mover en la cuadrícula** (abre Ajustes → Apps con
 la app ya tomada), **Ocultar**, **Información de la app** y **Desinstalar** (solo en apps que no son
 del sistema). Si el dock está lleno, la app nueva ocupa el último lugar.
@@ -115,7 +114,7 @@ temporizador de apagado de la TV no cambia.
 ### Centro de control
 
 El botón de los dos interruptores, junto a Ajustes, abre un panel como el de tvOS sobre el inicio
-desenfocado: la hora y la fecha; una fila de botones redondos, los **interruptores** **Wi‑Fi**,
+oscurecido: la hora y la fecha; una fila de botones redondos, los **interruptores** **Wi‑Fi**,
 **Bluetooth** y **Silencio** (OK los enciende y apaga; azul = encendido) y **Apagar** (reposo ahora); y
 cuatro accesos: **Protector de pantalla** (OK lo enciende a 10 min o lo apaga), **Apagado automático**
 (cada OK pasa a la siguiente duración: 15 min, 30 min… y Desactivado), **Liberar memoria** (con la
@@ -131,11 +130,12 @@ estaba; en los dos casos la tarjeta vuelve a encogerse en su acceso.
 - Para poder encender y apagar el Wi‑Fi, el launcher usa `targetSdk 28`: desde Android 10, las apps que
   apuntan a 29 o más ya no pueden hacerlo.
 
-### Vidrio esmerilado
+### Vidrio
 
-Con **Rendimiento → Blur** encendido, todo usa el vidrio del dock: los botones de la barra superior, los
-desplegables (Entradas, Wi‑Fi, el menú de una app), el Centro de control y las filas de los ajustes muestran
-detrás el fondo desenfocado con un velo translúcido. Con el blur apagado vuelven a ser sólidos.
+Todo usa el mismo vidrio, sin blur: un velo blanco translúcido, un poco más claro arriba, con un borde fino.
+Lo comparten los botones de la barra superior, el dock, los desplegables (Entradas, Wi‑Fi, el menú de una
+app), el Centro de control, las filas de los ajustes y el panel de House Control. Detrás del Centro de
+control y del menú de una app, el inicio se oscurece para que se lean bien.
 
 ## Fondos de pantalla
 
@@ -241,33 +241,30 @@ modelo.
 
 | Archivo | Qué hace |
 |---|---|
-| [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio: barra superior, fondo, columnas, navegación y fondo desenfocado de los menús. |
+| [`MainActivity.java`](launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java) | Pantalla de inicio: barra superior, fondo, columnas, navegación y el oscurecido detrás de los menús. |
 | [`AppAdapter.java`](launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java) | Lista de apps: el dock (una app por columna), la cuadrícula con columnas variables, apps ocultas y orden propio. |
 | [`AppMenu.java`](launcher/app/src/main/java/com/gathin/tvhome/AppMenu.java) | Desplegable al mantener pulsada una app. |
 | [`ControlCenter.java`](launcher/app/src/main/java/com/gathin/tvhome/ControlCenter.java) | El Centro de control: la hora, los interruptores y los accesos rápidos. |
-| [`Frost.java`](launcher/app/src/main/java/com/gathin/tvhome/Frost.java) | El vidrio esmerilado del dock para cualquier vista: botones, desplegables y filas de ajustes. |
+| [`Glass.java`](launcher/app/src/main/java/com/gathin/tvhome/Glass.java) | El vidrio del launcher para cualquier vista: botones, desplegables, filas de ajustes y el panel de House Control. |
 | [`SettingsDialog.java`](launcher/app/src/main/java/com/gathin/tvhome/SettingsDialog.java) | Los ajustes a pantalla completa, sus 7 secciones y la fila de fondos con vista previa. |
-| [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados e idioma de la app. |
+| [`Prefs.java`](launcher/app/src/main/java/com/gathin/tvhome/Prefs.java) | Ajustes guardados; la app siempre usa español. |
 | [`SystemTweaks.java`](launcher/app/src/main/java/com/gathin/tvhome/SystemTweaks.java) | Protector de pantalla y memoria. |
 | [`SleepTimer.java`](launcher/app/src/main/java/com/gathin/tvhome/SleepTimer.java) | Apagado automático: alarmas, aviso previo y el administrador que apaga la pantalla. |
 | [`TvHomeApp.java`](launcher/app/src/main/java/com/gathin/tvhome/TvHomeApp.java) | Detecta el encendido de la TV para la entrada al encender y el cambio de fondo. |
 | [`Inputs.java`](launcher/app/src/main/java/com/gathin/tvhome/Inputs.java) | Entradas de la TV (HDMI, AV, TV en vivo) y cómo abrirlas. |
 | [`Clocks.java`](launcher/app/src/main/java/com/gathin/tvhome/Clocks.java) | Formato de 12 o 24 horas para los relojes. |
 | [`ClockScene.java`](launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java) | La escena del protector, compartida por [`ClockDream`](launcher/app/src/main/java/com/gathin/tvhome/ClockDream.java) (el del sistema) y [`ScreensaverActivity`](launcher/app/src/main/java/com/gathin/tvhome/ScreensaverActivity.java) (Probar ahora). |
-| [`Blur.java`](launcher/app/src/main/java/com/gathin/tvhome/Blur.java) | Blur por software: captura desenfocada del inicio y copias suaves del fondo. |
 | [`Wallpapers.java`](launcher/app/src/main/java/com/gathin/tvhome/Wallpapers.java) | Lista, carga y miniaturas de los fondos. |
-| [`DockDecoration.java`](launcher/app/src/main/java/com/gathin/tvhome/DockDecoration.java) | Banda del dock: sólida o esmerilada con el fondo desenfocado. |
+| [`DockDecoration.java`](launcher/app/src/main/java/com/gathin/tvhome/DockDecoration.java) | Banda del dock, con el mismo vidrio. |
 | [`FadeFrame.java`](launcher/app/src/main/java/com/gathin/tvhome/FadeFrame.java) | Desvanece la cuadrícula en su borde superior. |
 | [`Motion.java`](launcher/app/src/main/java/com/gathin/tvhome/Motion.java) | Interruptor de las animaciones del launcher. |
 
-Los textos están en `res/values/strings.xml` (inglés) y `res/values-es/strings.xml` (español).
+Los textos están en `res/values/strings.xml`, solo en español.
 
 ## Notas
 
-- **El blur es por software.** El blur nativo de Android (`RenderEffect`) necesita Android 12 y esta
-  TV tiene Android 11. El launcher desenfoca copias pequeñas (6 a 12 veces más chicas) y las escala:
-  el fondo del dock se calcula una vez por fondo de pantalla, y el del menú en cada pulsación larga.
-  Con el blur apagado, el dock es sólido y el menú solo oscurece el fondo.
+- **Sin blur.** El blur en vivo de Android (`RenderEffect`) necesita Android 12 y esta TV tiene Android
+  11, así que el vidrio es un velo translúcido: no cuesta nada dibujarlo y se ve igual en todas partes.
 - **Memoria.** El fondo se carga en RGB_565 y a 1920 px. "Liberar memoria" pide a Android que cierre
   los procesos en segundo plano de las demás apps; no toca los procesos persistentes del sistema.
 - El launcher sigue sin permiso de Internet.

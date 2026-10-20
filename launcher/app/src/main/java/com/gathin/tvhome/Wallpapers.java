@@ -60,11 +60,6 @@ final class Wallpapers {
         return decode(ctx, file, w, h, Bitmap.Config.RGB_565);
     }
 
-    /** A soft, low-resolution copy of the wallpaper for the dock's frosted glass. */
-    static Bitmap blurred(Bitmap src) {
-        return Blur.scaledBlur(src);
-    }
-
     private static Bitmap decode(Context ctx, String file, int reqW, int reqH, Bitmap.Config config) {
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;

@@ -14,8 +14,7 @@ import android.widget.TextView;
 
 /**
  * The menu for a long press on a tile: open, dock, arrange, hide, app info, uninstall. A compact glass
- * dropdown like the Inputs menu, hanging below the tile (or above it when there is no room), over the
- * blurred home screen with the pressed tile kept sharp.
+ * dropdown like the Inputs menu, hanging below the tile (or above it when there is no room).
  */
 final class AppMenu {
 
@@ -32,14 +31,6 @@ final class AppMenu {
         void appInfo(AppAdapter.Entry e);
 
         void uninstall(AppAdapter.Entry e);
-
-        /** Blurs the home screen behind the menu, keeping {@code sharp} (the pressed tile) in focus. */
-        void showBackdrop(View sharp);
-
-        void hideBackdrop();
-
-        /** The blurred home screen behind the menu, for its glass. */
-        Frost.Source menuFrost();
     }
 
     private final Activity act;
@@ -85,7 +76,6 @@ final class AppMenu {
         popup.setOutsideTouchable(true);
         popup.setAnimationStyle(0);
         popup.setElevation(0f);
-        popup.setOnDismissListener(host::hideBackdrop);
 
         // Below the tile as it looks now (scaled up by focus), or above it when it would run off screen.
         int[] at = new int[2];
@@ -100,7 +90,6 @@ final class AppMenu {
         boolean below = y + height <= screenH - margin;
         if (!below) y = Math.max(margin, at[1] - gap - height);
 
-        host.showBackdrop(card);
         popup.showAtLocation(root, Gravity.NO_GRAVITY, x, y);
 
         // Drop in like the Inputs menu: fade and unfold from the edge next to the tile.
@@ -108,7 +97,6 @@ final class AppMenu {
         panel.setPivotY(below ? 0f : height);
         panel.setScaleY(0.92f);
         panel.setTranslationY((below ? -8 : 8) * density);
-        Frost.apply(panel, host.menuFrost(), 20 * density, 0x40000000);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(Motion.ms(220))
                 .setInterpolator(new DecelerateInterpolator(1.6f))
                 .withEndAction(panel::invalidate).start();   // the glass follows where the panel settled

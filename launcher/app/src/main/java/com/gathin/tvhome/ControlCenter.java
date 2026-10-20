@@ -11,7 +11,6 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -34,8 +33,8 @@ import android.widget.Toast;
 import java.util.function.IntConsumer;
 
 /**
- * Control Center, like tvOS: a glass panel hanging from its pill in the top bar, over the blurred home
- * screen. The time; switches for Wi-Fi, Bluetooth and mute, and a button to turn off; and tiles for the
+ * Control Center, like tvOS: a glass panel hanging from its pill in the top bar, over the home screen.
+ * The time; switches for Wi-Fi, Bluetooth and mute, and a button to turn off; and tiles for the
  * screensaver, the sleep timer, freeing memory and the TV's settings. Holding OK on the screensaver or the
  * sleep timer grows its tile into a card with its durations. Focus is a white ring, so a switch's colour
  * only ever means on or off.
@@ -43,14 +42,6 @@ import java.util.function.IntConsumer;
 final class ControlCenter {
 
     interface Host {
-        /** Blurs the home screen behind the panel, keeping {@code sharp} (the pill) in focus. */
-        void showBackdrop(View sharp);
-
-        void hideBackdrop();
-
-        /** The blurred home screen behind the panel, for its glass. */
-        Frost.Source menuFrost();
-
         void onSleepTimerChanged();
 
         void openTvSettings();
@@ -223,11 +214,8 @@ final class ControlCenter {
             if (morph != null) morph.cancel();
             card = null;
             cardLeaving = null;
-            host.hideBackdrop();
         });
 
-        host.showBackdrop(anchor);
-        Frost.apply(glass, host.menuFrost(), 20 * density, 0x40000000);
         // Under the pill, lined up with the right end of the top bar, unfolding from the pill.
         int width = (int) (PANEL_WIDTH_DP * density);
         popup.setWidth(width);
@@ -413,11 +401,7 @@ final class ControlCenter {
         // The card: the durations laid out at their final size, revealed as its rounded outline grows.
         FrameLayout c = new FrameLayout(act);
         c.addView(content, new FrameLayout.LayoutParams(to.width(), to.height()));
-        GradientDrawable solid = new GradientDrawable();
-        solid.setColor(0xFF242428);
-        solid.setCornerRadius(20 * density);
-        c.setBackground(solid);
-        Frost.apply(c, host.menuFrost(), 20 * density, 0x59000000);
+        c.setBackgroundResource(R.drawable.glass_panel);
         c.setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View v, Outline o) {

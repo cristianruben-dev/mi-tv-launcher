@@ -68,9 +68,6 @@ final class HousePanel extends FrameLayout {
         void panelFocused();
 
         void openHouseControl();
-
-        /** The blurred wallpaper the model's glass card shows through. */
-        Frost.Source wallpaperFrost();
     }
 
     static boolean installed(Context context) {
@@ -157,7 +154,7 @@ final class HousePanel extends FrameLayout {
         addView(grid, new LayoutParams(-2, -2));
 
         card = new FrameLayout(activity);
-        // Rounded clip of its own: the frosted glass background does not describe an outline.
+        // Rounded clip of its own: the glass background does not describe an outline.
         card.setOutlineProvider(new android.view.ViewOutlineProvider() {
             @Override
             public void getOutline(View view, android.graphics.Outline outline) {
@@ -168,7 +165,7 @@ final class HousePanel extends FrameLayout {
         addView(card, new LayoutParams(px(100), px(100)));
 
         model = new WebView(activity);
-        // Transparent: the model floats on the card's frosted glass (widget.js draws no background).
+        // Transparent: the model floats on the card's glass (widget.js draws no background).
         model.setBackgroundColor(Color.TRANSPARENT);
         model.setFocusable(false);
         model.setFocusableInTouchMode(false);
@@ -190,10 +187,10 @@ final class HousePanel extends FrameLayout {
                 return 0;
             }
 
-            /** Fewer pixels than the card's size: a sharp enough model that is light on 1–2 GB TVs. */
+            /** The card's full resolution: anything less looked blurry on the TV. */
             @JavascriptInterface
             public double resolution() {
-                return 0.7;
+                return 1;
             }
 
             @JavascriptInterface
@@ -262,7 +259,7 @@ final class HousePanel extends FrameLayout {
             openHint.animate().alpha(focus ? 1f : 0f).setDuration(Motion.ms(200)).start();
         });
         card.setForeground(ring(false));
-        applyBlur();
+        Glass.apply(card, px(20), false);   // the cover inside takes focus, and the ring shows it
         cover.setOnKeyListener((v, key, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             switch (key) {
@@ -339,14 +336,6 @@ final class HousePanel extends FrameLayout {
     /** Left edge of the model's card, in the panel. */
     int cardLeft() {
         return cardLeft;
-    }
-
-    /** The card is frosted glass over the wallpaper with blur on (Settings → Performance), a solid card otherwise. */
-    void applyBlur() {
-        card.setBackground(cardBackground());
-        Frost.apply(card, host.wallpaperFrost(), px(20), 0x33000000);
-        card.invalidate();
-        for (SceneTile t : scenes) t.applyBlur();
     }
 
     // ---- lifecycle -------------------------------------------------------------------------------
@@ -634,7 +623,7 @@ final class HousePanel extends FrameLayout {
             mark.setBackground(round(0xFFFFC46B, 2.5f));
             mark.setAlpha(0f);
             addView(mark, new LayoutParams(px(5), px(5), Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM));
-            applyBlur();
+            Glass.apply(this, px(22), false);
             paint();
             setOnFocusChangeListener((v, f) -> {
                 focused = f;
@@ -669,12 +658,6 @@ final class HousePanel extends FrameLayout {
             if (value == selected) return;
             selected = value;
             paint();
-        }
-
-        /** Frosted like the top bar's buttons with blur on; their solid pill otherwise. */
-        void applyBlur() {
-            setBackgroundResource(R.drawable.scene_bg);
-            Frost.apply(this, host.wallpaperFrost(), px(22), 0x33000000, false);
         }
 
         void paint() {

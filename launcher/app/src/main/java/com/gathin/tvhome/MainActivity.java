@@ -71,10 +71,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private RecyclerView grid;
     private FrameLayout root;
     private GlassView glass;
-    /** The blurred wallpaper, for the frosted pills, dropdowns and settings. */
-    private final Frost.Source wallpaperFrost = new Frost.Source();
-    /** The blurred home screen behind a menu, for the menu's own glass. */
-    private final Frost.Source menuFrost = new Frost.Source();
     private TextView heroName;
     private boolean heroShown;
     private TextView greeting;
@@ -82,8 +78,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private TextView btnWifi;
     private ImageView wallpaper;
     private View topScrim;
-    private ImageView backdrop;
-    private ImageView backdropTile;
     private FadeFrame gridFrame;
     private DockDecoration dock;
     /** House Control's scenes and live 3D home, between the top bar and the dock; null when it is not installed. */
@@ -152,8 +146,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         btnWifi = findViewById(R.id.btnWifi);
         wallpaper = findViewById(R.id.wallpaper);
         topScrim = findViewById(R.id.topScrim);
-        backdrop = findViewById(R.id.backdrop);
-        backdropTile = findViewById(R.id.backdropTile);
         gridFrame = findViewById(R.id.gridFrame);
 
         grid = findViewById(R.id.grid);
@@ -162,9 +154,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         grid.setLayoutManager(layoutManager);
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        dock = new DockDecoration(adapter.dockSize(), density, root);
+        dock = new DockDecoration(adapter.dockSize(), density);
         grid.addItemDecoration(dock);
-        applyBlur();
+        applyGlass();
         applyWallpaper();
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
@@ -656,47 +648,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         open(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + e.pkg)));
     }
 
-    // ---- menu backdrop ---------------------------------------------------------------------------
-
-    /**
-     * Blurs the home screen behind the long press menu, when blur is on, and lays a sharp copy of the
-     * pressed tile over it at the same place and scale, so the menu reads as belonging to that tile.
-     */
-    @Override
-    public void showBackdrop(View sharp) {
-        if (!Prefs.blur(this)) return;
-        Bitmap shot = Blur.snapshot(root);
-        if (shot == null) return;
-        menuFrost.set(shot, root.getWidth(), root.getHeight());
-        backdrop.setImageBitmap(shot);
-        backdrop.setVisibility(View.VISIBLE);
-        backdrop.setAlpha(0f);
-        backdrop.animate().alpha(1f).setDuration(Motion.ms(220)).withEndAction(null).start();
-
-        Bitmap tile = sharp == null ? null : Blur.copyOf(sharp, 16f * density);
-        if (tile == null) return;
-        Rect r = new Rect(0, 0, sharp.getWidth(), sharp.getHeight());
-        root.offsetDescendantRectToMyCoords(sharp, r);   // layout position; the scale is applied below
-        backdropTile.setLayoutParams(new FrameLayout.LayoutParams(r.width(), r.height()));
-        backdropTile.setTranslationX(r.left);
-        backdropTile.setTranslationY(r.top);
-        backdropTile.setScaleX(sharp.getScaleX());
-        backdropTile.setScaleY(sharp.getScaleY());
-        backdropTile.setImageBitmap(tile);
-        backdropTile.setVisibility(View.VISIBLE);
-    }
-
-    @Override
-    public void hideBackdrop() {
-        backdropTile.setVisibility(View.GONE);
-        backdropTile.setImageDrawable(null);
-        if (backdrop.getVisibility() != View.VISIBLE) return;
-        backdrop.animate().alpha(0f).setDuration(Motion.ms(180)).withEndAction(() -> {
-            backdrop.setVisibility(View.GONE);
-            backdrop.setImageDrawable(null);
-        }).start();
-    }
-
     // ---- top bar ---------------------------------------------------------------------------------
 
     private void updateGreeting() {
@@ -870,11 +821,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
-    public void onBlurChanged() {
-        applyBlur();
-    }
-
-    @Override
     public void onAnimationsChanged() {
         Motion.enabled = Prefs.animations(this);
     }
@@ -901,26 +847,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         open(new Intent(this, ScreensaverActivity.class));
     }
 
-    private void applyBlur() {
-        dock.setBlur(Prefs.blur(this));
-        grid.invalidate();
-        // The top bar's pills: frosted like the dock with blur on, the solid pill otherwise.
+    /** The top bar's pills wear the launcher's glass, like the dock and the menus. */
+    private void applyGlass() {
         for (int id : new int[]{R.id.btnInputs, R.id.btnWifi, R.id.btnControl, R.id.btnSettings}) {
-            View pill = findViewById(id);
-            pill.setBackgroundResource(R.drawable.pill_bg);
-            Frost.apply(pill, wallpaperFrost, 21 * density, 0x33000000);
+            Glass.apply(findViewById(id), 21 * density);
         }
-        if (house != null) house.applyBlur();
-    }
-
-    @Override
-    public Frost.Source wallpaperFrost() {
-        return wallpaperFrost;
-    }
-
-    @Override
-    public Frost.Source menuFrost() {
-        return menuFrost;
     }
 
     /** Shows the chosen wallpaper (decoded off the main thread), or plain black when none is bundled. */
@@ -929,7 +860,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         if (name.equals(loadedWallpaper)) return;
         loadedWallpaper = name;
         if (name.isEmpty()) {
-            setWallpaperBitmap(null, null);
+            setWallpaperBitmap(null);
             return;
         }
         final int w = getResources().getDisplayMetrics().widthPixels;
@@ -937,20 +868,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         final Context app = getApplicationContext();
         new Thread(() -> {
             Bitmap full = Wallpapers.load(app, name, w, h);
-            Bitmap soft = Wallpapers.blurred(full);
             runOnUiThread(() -> {
                 if (isDestroyed() || !name.equals(loadedWallpaper)) return;   // another choice came in meanwhile
-                if (full == null) {
-                    loadedWallpaper = "";
-                    setWallpaperBitmap(null, null);
-                } else {
-                    setWallpaperBitmap(full, soft);
-                }
+                if (full == null) loadedWallpaper = "";
+                setWallpaperBitmap(full);
             });
         }, "wallpaper").start();
     }
 
-    private void setWallpaperBitmap(Bitmap full, Bitmap soft) {
+    private void setWallpaperBitmap(Bitmap full) {
         boolean on = full != null;
         wallpaper.setImageBitmap(full);
         wallpaper.setVisibility(on ? View.VISIBLE : View.GONE);
@@ -959,11 +885,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
             wallpaper.setAlpha(0f);
             wallpaper.animate().alpha(1f).setDuration(Motion.ms(350)).start();
         }
-        dock.setBlurSource(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
-        wallpaperFrost.set(soft, on ? full.getWidth() : 0, on ? full.getHeight() : 0);
-        Frost.invalidateAll(findViewById(R.id.topButtons));
-        if (house != null) Frost.invalidateAll(house);
-        grid.invalidate();
     }
 
     // ---- inputs ----------------------------------------------------------------------------------
@@ -1091,7 +1012,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         popup.setOutsideTouchable(true);
         popup.setAnimationStyle(0);
         popup.setElevation(0f);
-        Frost.apply(panel, wallpaperFrost, 20 * density, 0x40000000);
         return popup;
     }
 

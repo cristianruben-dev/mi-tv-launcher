@@ -68,7 +68,6 @@
     <string name="free_memory">Liberar memoria</string>
     <string name="memory_freed">Se liberaron %1$s</string>
     <string name="launcher_header">Pantalla de inicio</string>
-    <string name="blur_effects">Blur</string>
     <string name="launcher_animations">Animaciones</string>
     <string name="menu_open">Abrir</string>
     <string name="menu_add_to_dock">Mover al dock</string>
