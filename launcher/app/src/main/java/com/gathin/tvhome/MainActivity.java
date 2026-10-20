@@ -694,6 +694,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         if (due) {
             Prefs.setRotatePending(this, false);
             Wallpapers.rotateNext(this);
+            // The new wallpaper brings its look: a new mode needs the activity recreated, an opacity a redraw.
+            if (Wallpapers.applyPreset(this, Prefs.wallpaper(this))) {
+                recreate();
+                return;
+            }
+            onGlassChanged();
         }
         applyWallpaper();
     }

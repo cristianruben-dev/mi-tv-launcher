@@ -869,6 +869,14 @@ final class SettingsDialog {
 
     private void choose(String key) {
         Prefs.setWallpaper(act, key);
+        // Each wallpaper brings the look that suits it; a new mode recreates the home screen and these settings.
+        if (Wallpapers.applyPreset(act, key)) {
+            dialog.dismiss();
+            host.onModeChanged(SECTION_WALLPAPER);
+            return;
+        }
+        host.onGlassChanged();
+        Glass.invalidateAll(dialog.getWindow().getDecorView());
         host.onWallpaperChanged();
         for (int i = 0; strip != null && i < strip.getChildCount(); i++) {
             View tile = strip.getChildAt(i);

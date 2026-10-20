@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Locale;
 
 /**
@@ -36,6 +38,37 @@ final class Wallpapers {
         } catch (IOException ignored) {
         }
         return out;
+    }
+
+    /**
+     * The look each bundled wallpaper reads best with, picked by eye on the TV: light mode (white glass, dark text)
+     * for bright pictures, dark mode (dark glass, white text) for dark ones, and the glass opacity in percent.
+     */
+    private static final Map<String, int[]> PRESETS = new HashMap<>();
+
+    static {
+        // {light mode ? 1 : 0, opacity}
+        PRESETS.put("acantilados_estelares.jpg", new int[]{0, 45});
+        PRESETS.put("bajo_el_mar.jpg", new int[]{1, 55});
+        PRESETS.put("bosque_al_atardecer.jpg", new int[]{0, 30});
+        PRESETS.put("cometa_sobre_las_nubes.jpg", new int[]{0, 30});
+        PRESETS.put("icebergs_al_atardecer.jpg", new int[]{1, 50});
+        PRESETS.put("mirando_los_planetas.jpg", new int[]{0, 30});
+        PRESETS.put("nebulosa_roja.jpg", new int[]{0, 35});
+        PRESETS.put("portal_en_ruinas.jpg", new int[]{0, 30});
+    }
+
+    /**
+     * Applies the look that suits {@code file}, if it has one. Returns true when the mode changed, which needs the
+     * activity recreated (the menus' colours are resources of the mode); the opacity alone only needs a redraw.
+     */
+    static boolean applyPreset(Context ctx, String file) {
+        int[] p = PRESETS.get(file);
+        if (p == null) return false;
+        boolean light = p[0] == 1, changed = light != Prefs.lightMode(ctx);
+        Prefs.setLightMode(ctx, light);
+        Prefs.setGlassOpacity(ctx, p[1]);
+        return changed;
     }
 
     /** Switches to the next bundled wallpaper (from "none", the first), for automatic rotation. */
