@@ -93,7 +93,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     private boolean resumed;
     /** Asset name of the wallpaper on screen (or being loaded); "" for none, null before the first load. */
     private String loadedWallpaper;
-    /** Section to reopen after the activity is recreated for a language change, or -1. */
+    /** Section to reopen after the activity is recreated for a mode change, or -1. */
     private static int reopenSettings = -1;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;

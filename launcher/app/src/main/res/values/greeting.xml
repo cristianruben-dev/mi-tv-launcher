@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Hour the greeting switches from "afternoon" to "evening" (24-hour clock). -->
-    <integer name="evening_from">17</integer>
+    <!-- In Spanish "buenas tardes" lasts until it gets dark; "buenas noches" from 19:00. -->
+    <integer name="evening_from">19</integer>
 </resources>

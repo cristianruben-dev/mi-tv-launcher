@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- In Spanish "buenas tardes" lasts until it gets dark; "buenas noches" from 19:00. -->
-    <integer name="evening_from">19</integer>
-</resources>

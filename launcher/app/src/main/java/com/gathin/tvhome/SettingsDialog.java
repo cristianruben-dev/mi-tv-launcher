@@ -82,14 +82,10 @@ final class SettingsDialog {
     private static final int[] SECTION_TITLES = {R.string.section_general, R.string.section_home,
             R.string.section_apps, R.string.section_wallpaper, R.string.section_screensaver,
             R.string.section_sleep, R.string.section_performance};
-    private static final int[] SECTION_ICONS = {R.drawable.ic_language, R.drawable.ic_appearance,
+    private static final int[] SECTION_ICONS = {R.drawable.ic_power, R.drawable.ic_appearance,
             R.drawable.ic_apps, R.drawable.ic_wallpaper, R.drawable.ic_screensaver,
             R.drawable.ic_sleep, R.drawable.ic_performance};
 
-    /** Darkens the frosted rows a little: they sit over the bright wallpaper. */
-    private static final int ROW_TINT = 0x4D000000;
-    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
-    private static final int TEXT_SHADOW = 0xB3000000;
 
     /** Apps section modes. */
     private static final int APPS_DOCK = 0, APPS_VISIBILITY = 1, APPS_ORDER = 2;
@@ -103,6 +99,10 @@ final class SettingsDialog {
     private final List<View> sectionRows = new ArrayList<>();
     private Dialog dialog;
     private ImageView backdrop;
+    /** Darkens the frosted rows a little: they sit over the bright wallpaper. */
+    private static final int ROW_TINT = 0x4D000000;
+    /** Keeps captions readable straight over the wallpaper, which nothing darkens. */
+    private static final int TEXT_SHADOW = 0xB3000000;
     private View page;
     private LinearLayout rows;
     private ScrollView scroll;
@@ -342,21 +342,6 @@ final class SettingsDialog {
 
     private void buildGeneral() {
         sectionHint.setText(R.string.general_hint);
-        addHeader(act.getString(R.string.section_language));
-        String chosen = Prefs.language(act);
-        String[] codes = {Prefs.LANG_SYSTEM, "en", "es"};
-        int[] names = {R.string.language_system, R.string.language_en, R.string.language_es};
-        for (int i = 0; i < codes.length; i++) {
-            final String code = codes[i];
-            View row = addOption(act.getString(names[i]), code.equals(chosen));
-            row.setOnClickListener(v -> {
-                if (code.equals(Prefs.language(act))) return;
-                Prefs.setLanguage(act, code);
-                dialog.dismiss();
-                host.onLanguageChanged();
-            });
-        }
-
         addHeader(act.getString(R.string.power_on_header));
         List<Inputs.Item> inputs = Inputs.list(act);
         final List<String> keys = new ArrayList<>();
