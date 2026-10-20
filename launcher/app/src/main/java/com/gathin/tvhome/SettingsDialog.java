@@ -56,6 +56,9 @@ final class SettingsDialog {
         /** Dark or light mode was chosen: the host recreates itself and may reopen this section. */
         void onModeChanged(int reopenSection);
 
+        /** The glass opacity changed: the host redraws its glass. */
+        void onGlassChanged();
+
         void onAnimationsChanged();
 
         void onSleepTimerChanged();
@@ -361,6 +364,7 @@ final class SettingsDialog {
         View bright = addOption(act.getString(R.string.mode_light), light);
         dark.setOnClickListener(v -> setMode(false));
         bright.setOnClickListener(v -> setMode(true));
+        addGlassSlider();
         addHeader(act.getString(R.string.columns_header));
         final List<View> colRows = new ArrayList<>();
         for (int c : Prefs.COLUMN_CHOICES) {
@@ -393,6 +397,36 @@ final class SettingsDialog {
         Prefs.setLightMode(act, light);
         dialog.dismiss();
         host.onModeChanged(SECTION_HOME);
+    }
+
+    /** Glass opacity: left and right step it, and the home screen and these rows follow at once. */
+    private void addGlassSlider() {
+        View row = act.getLayoutInflater().inflate(R.layout.item_slider, rows, false);
+        row.setId(View.generateViewId());
+        Glass.apply(row, 14 * density);
+        ((TextView) row.findViewById(R.id.title)).setText(R.string.glass_opacity);
+        Runnable show = () -> {
+            int p = Prefs.glassOpacity(act);
+            ((TextView) row.findViewById(R.id.value)).setText(act.getString(R.string.glass_opacity_value, p));
+            ((ProgressBar) row.findViewById(R.id.bar)).setProgress(p * 100 / Prefs.GLASS_MAX);
+        };
+        show.run();
+        row.setOnKeyListener((v, keyCode, event) -> {
+            int step = keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -Prefs.GLASS_STEP
+                    : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? Prefs.GLASS_STEP : 0;
+            if (step == 0) return false;
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            int now = Prefs.glassOpacity(act);
+            int next = Math.max(Prefs.glassMin(act), Math.min(Prefs.GLASS_MAX, now + step));
+            if (next != now) {
+                Prefs.setGlassOpacity(act, next);
+                show.run();
+                host.onGlassChanged();
+                Glass.invalidateAll(dialog.getWindow().getDecorView());
+            }
+            return true;
+        });
+        rows.addView(row);
     }
 
     // ---- apps: dock, show/hide, order ------------------------------------------------------------

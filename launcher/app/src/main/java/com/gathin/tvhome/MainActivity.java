@@ -834,6 +834,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
     }
 
     @Override
+    public void onGlassChanged() {
+        Glass.configure(!Prefs.lightMode(this), Prefs.glassOpacity(this));
+        Glass.invalidateAll(root);
+        grid.invalidate();   // the dock band
+    }
+
+    @Override
     public Bitmap wallpaperBitmap() {
         Drawable d = wallpaper.getVisibility() == View.VISIBLE ? wallpaper.getDrawable() : null;
         return d instanceof BitmapDrawable ? ((BitmapDrawable) d).getBitmap() : null;
