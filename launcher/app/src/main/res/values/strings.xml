@@ -116,8 +116,6 @@
 
     <!-- House Control en la pantalla de inicio -->
     <string name="house_scenes">Escenas</string>
-    <string name="house_demo">Casa de demostración</string>
-    <string name="house_demo_short">Demo</string>
     <string name="house_your_home">Tu casa</string>
     <string name="house_open">Abrir</string>
     <string name="house_connecting">Conectando con House Control…</string>

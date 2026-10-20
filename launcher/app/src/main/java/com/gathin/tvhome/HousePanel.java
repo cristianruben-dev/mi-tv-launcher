@@ -53,7 +53,7 @@ final class HousePanel extends FrameLayout {
     static final String PACKAGE = "dev.housecontrol.tv";
     private static final String SERVICE = PACKAGE + ".HomeService";
     private static final String WIDGET_URL = "http://127.0.0.1:8788/widget.html";
-    private static final int READ_HOME = 1, RUN_SCENE = 2, SET_ACTIVE = 3, RUN_DEMO_SCENE = 4, SET_APPEARANCE = 5;
+    private static final int READ_HOME = 1, RUN_SCENE = 2, SET_ACTIVE = 3, SET_APPEARANCE = 5;
     private static final int MAX_SCENES = 8, GRID_COLUMNS = 4, GRID_ROWS = 2;
     private static final long REFRESH_MS = 2000;
 
@@ -496,11 +496,8 @@ final class HousePanel extends FrameLayout {
             return;
         }
         current = home;
-        boolean demo = home.optBoolean("demo");
+        title.setText(R.string.house_your_home);
         JSONObject plan = home.optJSONObject("plan");
-        String name = plan == null ? "" : plan.optString("name");
-        title.setText(demo ? (name.isEmpty() ? activity.getString(R.string.house_demo) : name)
-                : activity.getString(R.string.house_your_home));
 
         JSONObject state = home.optJSONObject("state");
         JSONObject lights = state == null ? null : state.optJSONObject("lights");
@@ -518,7 +515,7 @@ final class HousePanel extends FrameLayout {
         else if (!home.optBoolean("controlReady")) setStatus(R.string.house_connect_devices, false);
         else if (!home.optString("cloudError").isEmpty())
             setStatus(lit + " · " + activity.getString(R.string.house_reconnecting), false);
-        else setStatus(demo ? lit + " · " + activity.getString(R.string.house_demo_short) : lit, true);
+        else setStatus(lit, true);
 
         String rev = home.optString("revision");
         if (!revision.equals(rev)) {
@@ -595,11 +592,10 @@ final class HousePanel extends FrameLayout {
         busy = true;
         for (SceneTile t : scenes) t.paint();
         setStatus(activity.getString(R.string.house_setting_scene, name), true);
-        final int code = current.optBoolean("demo") ? RUN_DEMO_SCENE : RUN_SCENE;
         worker.execute(() -> {
             JSONObject result;
             try {
-                result = transact(code, id);
+                result = transact(RUN_SCENE, id);
             } catch (Exception error) {
                 result = null;
             }
