@@ -43,7 +43,7 @@ import java.util.concurrent.Executors;
  *
  * <p>The launcher binds House Control's HomeService (which only answers launchers whose signing certificate it
  * pins) and reads the home through the binder: code 1 reads plan and state, 2 runs a scene, 3 tells it whether
- * the widget is on screen, 4 runs a scene of the demo home. Binding also starts House Control's local server on
+ * the widget is on screen, 5 shares the look (mode, glass, wallpaper). Binding also starts House Control's local server on
  * 127.0.0.1:8788, whose widget.html draws the model in the WebView and asks this panel for the home through the
  * {@code HouseWidget} JavaScript interface. No credential ever reaches the launcher.
  */
@@ -53,7 +53,7 @@ final class HousePanel extends FrameLayout {
     static final String PACKAGE = "dev.housecontrol.tv";
     private static final String SERVICE = PACKAGE + ".HomeService";
     private static final String WIDGET_URL = "http://127.0.0.1:8788/widget.html";
-    private static final int READ_HOME = 1, RUN_SCENE = 2, SET_ACTIVE = 3, RUN_DEMO_SCENE = 4;
+    private static final int READ_HOME = 1, RUN_SCENE = 2, SET_ACTIVE = 3, RUN_DEMO_SCENE = 4, SET_APPEARANCE = 5;
     private static final int MAX_SCENES = 8, GRID_COLUMNS = 4, GRID_ROWS = 2;
     private static final long REFRESH_MS = 2000;
 
@@ -117,6 +117,7 @@ final class HousePanel extends FrameLayout {
         public void onServiceConnected(ComponentName name, IBinder service) {
             binder = service;
             sendActive(active);
+            sendAppearance();
             fetch();
             // Binding is what starts House Control's local server: only now is the model there to load.
             if (!loaded) {
@@ -412,6 +413,36 @@ final class HousePanel extends FrameLayout {
         });
     }
 
+    /**
+     * Tells House Control the launcher's mode and glass opacity, so the app looks the same as the home screen.
+     * House Control keeps it only if it is newer than a look chosen in the app itself; older House Control
+     * builds do not know the call and keep their own look.
+     */
+    void sendAppearance() {
+        if (binder == null || worker.isShutdown()) return;
+        final String appearance;
+        try {
+            appearance = new JSONObject().put("mode", Prefs.lightMode(activity) ? "light" : "dark")
+                    .put("opacity", Prefs.glassOpacity(activity)).put("wallpaper", Prefs.wallpaper(activity))
+                    .put("at", Prefs.appearanceAt(activity)).toString();
+        } catch (Exception e) {
+            return;
+        }
+        worker.execute(() -> {
+            IBinder target = binder;
+            if (target == null) return;
+            Parcel in = Parcel.obtain(), out = Parcel.obtain();
+            try {
+                in.writeString(appearance);
+                if (target.transact(SET_APPEARANCE, in, out, 0)) out.readException();
+            } catch (Exception ignored) {
+            } finally {
+                in.recycle();
+                out.recycle();
+            }
+        });
+    }
+
     private JSONObject transact(int code, String scene) throws Exception {
         IBinder target = binder;
         if (target == null) throw new IllegalStateException("House Control is not connected.");
@@ -595,7 +626,7 @@ final class HousePanel extends FrameLayout {
         });
     }
 
-    /** One scene: a glass tile with a vector glyph; white when focused, warm when it is the active scene. */
+    /** One scene: a glass tile with a vector glyph; a white edge when focused, warm when it is the active scene. */
     private final class SceneTile extends FrameLayout {
         final String id, name;
         final SceneIcon glyph;
@@ -620,10 +651,10 @@ final class HousePanel extends FrameLayout {
             label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             addView(label, new LayoutParams(-1, -2, Gravity.CENTER_HORIZONTAL));
             mark = new View(activity);
-            mark.setBackground(round(0xFFFFC46B, 2.5f));
+            mark.setBackground(round(activity.getColor(R.color.warm_rim) | 0xFF000000, 2.5f));
             mark.setAlpha(0f);
             addView(mark, new LayoutParams(px(5), px(5), Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM));
-            Glass.apply(this, px(22), false);
+            Glass.apply(this, px(22), false);   // focus is the white edge drawn over it
             paint();
             setOnFocusChangeListener((v, f) -> {
                 focused = f;
@@ -661,14 +692,13 @@ final class HousePanel extends FrameLayout {
         }
 
         void paint() {
-            // The background (frosted glass or pill) turns white on focus and brighter while activated.
-            setActivated(selected);
-            // The active scene glows warm like a lit light; focus is a white edge, like the 3D card's.
+            // The active scene glows warm like a lit light (not the glass's brighter activated sheen, which would
+            // wash the amber out); focus is an edge, like the 3D card's.
             android.graphics.drawable.Drawable glow = selected ? activeGlow(22) : null, edge = focused ? focusEdge(22) : null;
             setForeground(glow != null && edge != null ? new android.graphics.drawable.LayerDrawable(
                     new android.graphics.drawable.Drawable[]{glow, edge}) : glow != null ? glow : edge);
-            glyph.setColor(selected ? 0xFFFFD08A : 0xFFFFFFFF);
-            label.setTextColor(0xFFFFFFFF);
+            glyph.setColor(activity.getColor(selected ? R.color.warm_glyph : R.color.glass_text));
+            label.setTextColor(activity.getColor(R.color.glass_text));
             mark.animate().alpha(selected ? 1f : 0f).setDuration(Motion.ms(240)).start();
             setAlpha(busy && !focused ? 0.55f : 1f);
         }
@@ -727,35 +757,29 @@ final class HousePanel extends FrameLayout {
         return d;
     }
 
-    private GradientDrawable cardBackground() {
-        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xE6101A2B, 0xE60B111D});
-        d.setCornerRadius(px(20));
-        return d;
-    }
-
     /** The active scene's warm glow: an amber wash over its glass, brighter at the top, with a warm rim. */
     private GradientDrawable activeGlow(float radiusDp) {
-        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x55FFC46B, 0x1FFFC46B});
+        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{activity.getColor(R.color.warm_top), activity.getColor(R.color.warm_bottom)});
         d.setCornerRadius(px(radiusDp));
-        d.setStroke(Math.max(1, px(1f)), 0x99FFC46B);
+        d.setStroke(Math.max(1, px(1f)), activity.getColor(R.color.warm_rim));
         return d;
     }
 
-    /** The white edge a focused scene button or card shows. */
+    /** The edge a focused scene button or card shows: white in dark mode, near black in light mode. */
     private GradientDrawable focusEdge(float radiusDp) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(Color.TRANSPARENT);
         d.setCornerRadius(px(radiusDp));
-        d.setStroke(Math.max(1, px(1f)), 0xF2FFFFFF);
+        d.setStroke(Math.max(1, px(1f)), activity.getColor(R.color.glass_edge));
         return d;
     }
 
-    /** The card's edge: a faint rim, white when focused. */
+    /** The card's edge: a faint rim, the focus edge when focused. */
     private GradientDrawable ring(boolean focus) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(Color.TRANSPARENT);
         d.setCornerRadius(px(20));
-        d.setStroke(Math.max(1, px(focus ? 1f : 0.8f)), focus ? 0xF2FFFFFF : 0x26FFFFFF);
+        d.setStroke(Math.max(1, px(focus ? 1f : 0.8f)), focus ? activity.getColor(R.color.glass_edge) : 0x26FFFFFF);
         return d;
     }
 }

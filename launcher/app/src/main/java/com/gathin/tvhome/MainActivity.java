@@ -844,6 +844,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener, S
         Glass.configure(!Prefs.lightMode(this), Prefs.glassOpacity(this));
         Glass.invalidateAll(root);
         grid.invalidate();   // the dock band
+        if (house != null) house.sendAppearance();
     }
 
     @Override
